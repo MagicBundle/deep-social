@@ -25,7 +25,8 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | Universal search (events / people / interests) in the menu bar, with fly-to | ✅ |
 | Event cards → **Join meetup** → "My meetups" tab | ✅ |
 | Per-event interest chat with simulated participants | ✅ |
-| Social sign-in screen (Apple / Google / Meta) | ✅ mocked |
+| Social sign-in: **Google (real OAuth**, once a client id is configured — [docs/AUTH.md](docs/AUTH.md)**)**, Apple/Meta in labeled demo mode | ✅ |
+| Session persistence (localStorage) + sign-out | ✅ |
 
 ## Architecture
 
@@ -48,7 +49,7 @@ The simulation tick (1.5 s) is deliberately shaped like a realtime feed: swappin
 
 ## Path to production
 
-1. **Auth** — replace the mock in `LoginScreen` with [Auth.js](https://authjs.dev) or Supabase Auth. All three providers are standard OAuth/OIDC: Sign in with Apple (requires Apple Developer account + Services ID), Google Identity Services, Meta/Facebook Login. The `Session` type in `src/types.ts` is the only contract the UI needs.
+1. **Auth** — Google sign-in is implemented client-side (Google Identity Services token flow) and goes live with a client id: see [docs/AUTH.md](docs/AUTH.md). Apple (paid developer account + registered domain) and Meta (app review) are cleanest via Supabase Auth or [Auth.js](https://authjs.dev) once a backend exists; `src/auth/index.ts` is the only file that routes providers, and the `Session` type in `src/types.ts` stays the UI contract.
 2. **Realtime presence & movement** — WebSockets (e.g. Supabase Realtime, Ably, or a small Elixir/Phoenix or Node `ws` service). Client publishes opt-in location at a chosen precision; server fans out per map-viewport region (geohash sharding).
 3. **Geo queries** — PostgreSQL + PostGIS (`ST_DWithin` for "near me", GiST index on event/member locations).
 4. **Chat** — same realtime channel infra; one channel per event + per interest; persist to Postgres.

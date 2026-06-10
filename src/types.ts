@@ -50,6 +50,10 @@ export interface Session {
   name: string
   provider: Provider
   avatar: string
+  email?: string
+  picture?: string
+  /** true when the session came from real OAuth rather than the demo mock */
+  real?: boolean
 }
 
 export interface World {

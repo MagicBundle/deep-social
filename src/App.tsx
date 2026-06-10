@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChatMessage, MapFocus, Provider, Session } from './types'
+import { clearSession, loadSession, saveSession } from './auth'
 import { CHAT_REPLIES, CHAT_SEEDS } from './data/mock'
 import { isLive, useSimulation } from './sim/engine'
 import LoginScreen from './components/LoginScreen'
@@ -25,7 +26,7 @@ let uid = 0
 const nextId = () => ++uid
 
 export default function App() {
-  const [session, setSession] = useState<Session | null>(null)
+  const [session, setSession] = useState<Session | null>(() => loadSession())
   const world = useSimulation(session !== null)
 
   const [filters, setFilters] = useState<Set<string>>(new Set())
@@ -49,13 +50,21 @@ export default function App() {
   const flyTo = (lat: number, lng: number, zoom = 15) =>
     setFocus({ lat, lng, zoom, nonce: nextId() })
 
-  const handleLogin = (provider: Provider) => {
-    setSession({ name: 'Jérôme', provider, avatar: '😎' })
+  const handleLogin = (newSession: Session) => {
+    setSession(newSession)
+    saveSession(newSession)
     toast(
-      provider === 'guest'
+      newSession.provider === 'guest'
         ? 'Exploring as guest — join an event to get started'
-        : `Signed in with ${PROVIDER_NAME[provider]} ✓ (prototype mock)`,
+        : newSession.real
+          ? `Signed in with ${PROVIDER_NAME[newSession.provider]} as ${newSession.name} ✓`
+          : `Signed in with ${PROVIDER_NAME[newSession.provider]} ✓ (demo mode)`,
     )
+  }
+
+  const handleSignOut = () => {
+    clearSession()
+    setSession(null)
   }
 
   const selectEvent = (id: string) => {
@@ -215,7 +224,7 @@ export default function App() {
         world={world}
         liveCount={liveCount}
         onPick={handleSearchPick}
-        onSignOut={() => setSession(null)}
+        onSignOut={handleSignOut}
       />
 
       <SidePanel

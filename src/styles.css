@@ -417,6 +417,16 @@ input {
   border: 2px solid var(--brand-b);
   background: rgba(255, 255, 255, 0.06);
   font-size: 18px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.avatar-btn img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
 }
 
 .avatar-dropdown {
@@ -1056,6 +1066,35 @@ input {
   color: var(--muted);
   font-size: 11.5px;
   min-height: 15px;
+}
+
+.login-status.error {
+  color: #fda4af;
+}
+
+.mode-tag {
+  margin-left: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 99px;
+  opacity: 0.85;
+}
+
+.mode-tag.demo {
+  background: rgba(148, 163, 184, 0.22);
+  color: inherit;
+}
+
+.mode-tag.live {
+  background: rgba(74, 222, 128, 0.25);
+  color: #166534;
+}
+
+.sso-btn.google .mode-tag.live {
+  color: #4ade80;
 }
 
 /* ---------- Responsive ---------- */

@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import type { Provider } from '../types'
+import { useEffect, useState } from 'react'
+import type { Provider, Session } from '../types'
+import { preloadGoogle, providerMode, signIn } from '../auth'
 
 interface Props {
-  onLogin: (provider: Provider) => void
+  onLogin: (session: Session) => void
 }
 
 const PROVIDER_LABEL: Record<Provider, string> = {
@@ -33,16 +34,42 @@ const MetaLogo = () => (
   </svg>
 )
 
+function ModeTag({ provider }: { provider: Provider }) {
+  const mode = providerMode(provider)
+  return <span className={`mode-tag ${mode}`}>{mode}</span>
+}
+
 export default function LoginScreen({ onLogin }: Props) {
   const [connecting, setConnecting] = useState<Provider | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const googleLive = providerMode('google') === 'live'
 
-  const handle = (provider: Provider) => {
+  // Load the GIS script before the click so the consent popup stays within
+  // the browser's user-gesture window.
+  useEffect(() => {
+    if (googleLive) preloadGoogle().catch(() => {})
+  }, [googleLive])
+
+  const handle = async (provider: Provider) => {
     if (connecting) return
+    setError(null)
     setConnecting(provider)
-    // Mock OAuth handshake. In production this redirects to the provider's
-    // authorize endpoint (see README for the Auth.js / Supabase wiring).
-    setTimeout(() => onLogin(provider), 800)
+    try {
+      const session = await signIn(provider)
+      onLogin(session)
+    } catch (e) {
+      setError(`${PROVIDER_LABEL[provider]} sign-in didn't complete: ${(e as Error).message}`)
+      setConnecting(null)
+    }
   }
+
+  const statusText = error
+    ? error
+    : connecting
+      ? `Connecting with ${PROVIDER_LABEL[connecting]}…`
+      : googleLive
+        ? 'Google sign-in is live. Apple & Meta run in demo mode for now — see docs/AUTH.md.'
+        : 'Demo mode: sign-in is simulated locally. Wire up real Google OAuth in docs/AUTH.md.'
 
   return (
     <div className="login-screen">
@@ -67,24 +94,20 @@ export default function LoginScreen({ onLogin }: Props) {
 
         <div className="login-buttons">
           <button className="sso-btn apple" onClick={() => handle('apple')}>
-            <AppleLogo /> Continue with Apple
+            <AppleLogo /> Continue with Apple <ModeTag provider="apple" />
           </button>
           <button className="sso-btn google" onClick={() => handle('google')}>
-            <GoogleLogo /> Continue with Google
+            <GoogleLogo /> Continue with Google <ModeTag provider="google" />
           </button>
           <button className="sso-btn facebook" onClick={() => handle('facebook')}>
-            <MetaLogo /> Continue with Meta
+            <MetaLogo /> Continue with Meta <ModeTag provider="facebook" />
           </button>
           <button className="sso-btn guest" onClick={() => handle('guest')}>
             Explore as guest →
           </button>
         </div>
 
-        <p className="login-status">
-          {connecting
-            ? `Connecting with ${PROVIDER_LABEL[connecting]}…`
-            : 'Prototype: sign-in is simulated locally — no data leaves your machine.'}
-        </p>
+        <p className={`login-status${error ? ' error' : ''}`}>{statusText}</p>
       </div>
     </div>
   )

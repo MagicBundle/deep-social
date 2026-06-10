@@ -122,13 +122,14 @@ export default function TopBar({ session, world, liveCount, onPick, onSignOut }:
         </div>
         <div className="avatar-menu">
           <button className="avatar-btn" onClick={() => setMenuOpen((o) => !o)}>
-            {session.avatar}
+            {session.picture ? <img src={session.picture} alt={session.name} referrerPolicy="no-referrer" /> : session.avatar}
           </button>
           {menuOpen && (
             <div className="avatar-dropdown">
               <div className="avatar-row">
                 <strong>{session.name}</strong>
-                <small>via {PROVIDER_BADGE[session.provider]}</small>
+                {session.email && <small>{session.email}</small>}
+                <small>via {PROVIDER_BADGE[session.provider]}{session.real ? '' : ' (demo)'}</small>
               </div>
               <button onClick={onSignOut}>Sign out</button>
             </div>
