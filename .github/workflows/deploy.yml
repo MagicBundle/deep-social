@@ -11,6 +11,11 @@ permissions:
   pages: write
   id-token: write
 
+# GitHub forces JS actions onto Node 24 from 2026-06-16; opt in early so
+# breakage surfaces in a controlled run, not on the cutover date.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: false
