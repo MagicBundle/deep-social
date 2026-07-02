@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChatMessage, MapFocus, Provider, Session } from './types'
-import { clearSession, loadSession, saveSession } from './auth'
+import {
+  isBackendConfigured,
+  loadSession,
+  onBackendAuthChange,
+  restoreBackendSession,
+  saveSession,
+  signOutEverywhere,
+} from './auth'
 import { CHAT_REPLIES, CHAT_SEEDS } from './data/mock'
 import { isLive, useSimulation } from './sim/engine'
 import LoginScreen from './components/LoginScreen'
@@ -63,9 +70,22 @@ export default function App() {
   }
 
   const handleSignOut = () => {
-    clearSession()
+    void signOutEverywhere()
     setSession(null)
   }
+
+  // Backend session bootstrap: after the Supabase OAuth redirect (or on any
+  // later visit while the Supabase session is valid), adopt it as the app
+  // session. onBackendAuthChange also clears state on remote sign-out.
+  useEffect(() => {
+    if (!isBackendConfigured()) return
+    restoreBackendSession()
+      .then((s) => {
+        if (s) setSession(s)
+      })
+      .catch((e) => console.warn('[auth] session restore failed:', e))
+    return onBackendAuthChange((s) => setSession(s))
+  }, [])
 
   const selectEvent = (id: string) => {
     setSelectedEventId(id)

@@ -27,6 +27,7 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | Per-event interest chat with simulated participants | ✅ |
 | Social sign-in: **Google (real OAuth**, once a client id is configured — [docs/AUTH.md](docs/AUTH.md)**)**, Apple/Meta in labeled demo mode | ✅ |
 | Session persistence (localStorage) + sign-out | ✅ |
+| **Data backbone**: PostGIS schema + RLS, nearby queries, realtime posts, presence — live once a Supabase project is connected ([docs/BACKEND.md](docs/BACKEND.md)) | ✅ code + migration |
 
 ## Architecture
 
@@ -50,8 +51,8 @@ The simulation tick (1.5 s) is deliberately shaped like a realtime feed: swappin
 ## Path to production
 
 1. **Auth** — Google sign-in is implemented client-side (Google Identity Services token flow) and goes live with a client id: see [docs/AUTH.md](docs/AUTH.md). Apple (paid developer account + registered domain) and Meta (app review) are cleanest via Supabase Auth or [Auth.js](https://authjs.dev) once a backend exists; `src/auth/index.ts` is the only file that routes providers, and the `Session` type in `src/types.ts` stays the UI contract.
-2. **Realtime presence & movement** — WebSockets (e.g. Supabase Realtime, Ably, or a small Elixir/Phoenix or Node `ws` service). Client publishes opt-in location at a chosen precision; server fans out per map-viewport region (geohash sharding).
-3. **Geo queries** — PostgreSQL + PostGIS (`ST_DWithin` for "near me", GiST index on event/member locations).
+2. **Realtime presence & movement** — implemented: Supabase Realtime (`postgres_changes` for posts, Presence for live positions) in [src/services/db.ts](src/services/db.ts); goes live with the backend ([docs/BACKEND.md](docs/BACKEND.md)).
+3. **Geo queries** — implemented: PostGIS `ST_DWithin` RPCs with privacy tiers and GiST indexes in [supabase/migrations/0001_init.sql](supabase/migrations/0001_init.sql); next step is feeding `useSimulation`'s World from them.
 4. **Chat** — same realtime channel infra; one channel per event + per interest; persist to Postgres.
 5. **Privacy (non-negotiable for live location)** — sharing is opt-in and granular: precise / neighborhood-fuzzed (~500 m jitter) / ghost mode; auto-expiry ("share for 2 h"); visible-to (everyone / shared-interest matches / accepted connections only); no location history retention by default.
 6. **Mobile** — the UI is responsive; a Capacitor wrapper or React Native port gets native background-location and push for "someone with your interests just checked in nearby".

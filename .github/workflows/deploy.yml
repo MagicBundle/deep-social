@@ -32,11 +32,14 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       # Pages serves the site at /deep-social/, so assets need that base path.
-      # VITE_GOOGLE_CLIENT_ID is a repo variable (public client id, not a
-      # secret) — unset means the Google button runs in demo mode.
+      # All three vars are repository variables and public-by-design (they
+      # ship in the bundle; RLS is the security boundary) — unset means the
+      # corresponding feature runs in demo mode.
       - run: npm run build -- --base=/deep-social/
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
