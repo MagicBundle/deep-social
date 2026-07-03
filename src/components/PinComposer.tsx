@@ -49,12 +49,14 @@ export default function PinComposer({
   const [description, setDescription] = useState('')
 
   // Location naming: reverse-geocoded from the map click, replaceable via
-  // address search (which also moves the draft pin).
+  // address search (which also moves the draft pin). The map-click location
+  // is always a valid default — search is purely optional refinement.
   const [venue, setVenue] = useState<string | null>(null)
   const [resolving, setResolving] = useState(true)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Place[]>([])
   const abortRef = useRef<AbortController | null>(null)
+  const blurTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
@@ -102,6 +104,14 @@ export default function PinComposer({
   }
 
   const valid = title.trim().length > 0 && category !== null
+  const missing =
+    category === null && title.trim().length === 0
+      ? 'Choose an activity and give it a name'
+      : category === null
+        ? 'Choose an activity type'
+        : title.trim().length === 0
+          ? 'Give your event a name'
+          : null
 
   const submit = () => {
     if (!valid) return
@@ -129,18 +139,58 @@ export default function PinComposer({
         <label className="composer-label" htmlFor="pin-where">
           Where
         </label>
+        <p className="where-confirmed">
+          <span className="where-check">✓</span> Pinned at{' '}
+          <strong>
+            {venue ??
+              (resolving
+                ? 'resolving the address…'
+                : `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`)}
+          </strong>
+        </p>
+        <p className="where-question">
+          Keep this spot, enter a more precise place below, or{' '}
+          <button className="where-repick" onClick={onRepickOnMap}>
+            pick on the map
+          </button>
+          .
+        </p>
         <div className="composer-where">
           <input
             id="pin-where"
             className="composer-input"
             value={query}
-            placeholder="Search an address or place…"
+            placeholder="Refine: search an address or place… (optional)"
             onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => {
+              window.clearTimeout(blurTimer.current)
+            }}
+            onBlur={() => {
+              // Tidy up when the user moves on (delay lets result clicks land)
+              blurTimer.current = window.setTimeout(() => setResults([]), 150)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' && (results.length > 0 || query)) {
+                // Close/clear the search only — don't let the global Esc
+                // handler tear down the whole composer.
+                e.stopPropagation()
+                setResults([])
+                setQuery('')
+              }
+            }}
           />
           {results.length > 0 && (
+            /* In normal flow (not an overlay): suggestions push the form down
+               instead of covering the activity chips. */
             <div className="where-results">
               {results.map((r, i) => (
-                <button key={`${r.lat}-${r.lng}-${i}`} onClick={() => pickPlace(r)}>
+                <button
+                  key={`${r.lat}-${r.lng}-${i}`}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    pickPlace(r)
+                  }}
+                >
                   <span className="where-emoji">📍</span>
                   <span>{r.label}</span>
                 </button>
@@ -148,16 +198,6 @@ export default function PinComposer({
             </div>
           )}
         </div>
-        <p className="where-current">
-          📍{' '}
-          {venue ??
-            (resolving
-              ? 'Finding the address…'
-              : `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`)}
-          <button className="where-repick" onClick={onRepickOnMap}>
-            pick on map instead
-          </button>
-        </p>
 
         <label className="composer-label">What kind of get-together?</label>
         <div className="composer-chips">
@@ -231,6 +271,7 @@ export default function PinComposer({
         />
 
         <div className="composer-actions">
+          {missing && <span className="composer-missing">{missing} to pin</span>}
           <button className="btn-chat" onClick={onCancel}>
             Cancel
           </button>
