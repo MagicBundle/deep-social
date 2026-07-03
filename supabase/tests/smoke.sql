@@ -105,19 +105,30 @@ begin
   raise notice 'PASS: 2-hour freshness window enforced';
 end $$;
 
--- ── posts ───────────────────────────────────────────────────────────────
+-- ── event pins ──────────────────────────────────────────────────────────
 do $$
 declare pid uuid; p record;
 begin
-  pid := public.create_post('Sunset run at the river — join!', 48.8639, 2.3136);
+  pid := public.create_event_pin('Sunset run — river loop', 'running', 48.8639, 2.3136,
+                                 now() + interval '30 minutes', 90, 'Easy pace, all welcome');
   select * into p from public.nearby_posts(48.8566, 2.3522, 5000) limit 1;
-  if p.id is distinct from pid then raise exception 'FAIL posts: created pin not returned'; end if;
-  if p.author_name <> 'Alice' then raise exception 'FAIL posts: author join wrong (%)', p.author_name; end if;
+  if p.id is distinct from pid then raise exception 'FAIL pins: created pin not returned'; end if;
+  if p.title <> 'Sunset run — river loop' or p.category <> 'running' or p.duration_min <> 90
+    then raise exception 'FAIL pins: structured fields wrong'; end if;
+  if p.author_name <> 'Alice' then raise exception 'FAIL pins: author join wrong (%)', p.author_name; end if;
   if p.distance_m not between 2500 and 3500
-    then raise exception 'FAIL posts: distance % outside sanity band', p.distance_m; end if;
+    then raise exception 'FAIL pins: distance % outside sanity band', p.distance_m; end if;
   if exists (select 1 from public.nearby_posts(48.8566, 2.3522, 500))
-    then raise exception 'FAIL posts: pin leaked into 500 m radius'; end if;
-  raise notice 'PASS: create_post + nearby_posts (author join, distance, radius)';
+    then raise exception 'FAIL pins: pin leaked into 500 m radius'; end if;
+
+  -- lifecycle: ended pins disappear, ongoing pins stay
+  update public.posts set starts_at = now() - interval '5 hours', duration_min = 60 where id = pid;
+  if exists (select 1 from public.nearby_posts(48.8566, 2.3522, 5000) where id = pid)
+    then raise exception 'FAIL pins: ended pin still visible'; end if;
+  update public.posts set starts_at = now() - interval '30 minutes', duration_min = 120 where id = pid;
+  if not exists (select 1 from public.nearby_posts(48.8566, 2.3522, 5000) where id = pid)
+    then raise exception 'FAIL pins: ongoing pin missing'; end if;
+  raise notice 'PASS: create_event_pin + nearby_posts (fields, author, distance, lifecycle)';
 end $$;
 
 -- ── RLS + column grants (as the API role) ───────────────────────────────
@@ -165,7 +176,7 @@ begin
   end;
 
   -- Bob CAN post as himself through the RPC
-  perform public.create_post('bob pin', 48.857, 2.353);
+  perform public.create_event_pin('bob pin', 'food', 48.857, 2.353);
   raise notice 'PASS: RLS blocks cross-user writes, allows own writes';
 end $$;
 

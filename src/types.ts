@@ -32,6 +32,9 @@ export interface SocialEvent {
   durationMin: number
   description: string
   attendees: string[]
+  /** true for user-created pins (local or synced from the backend) */
+  isPin?: boolean
+  authorName?: string
 }
 
 export interface ChatMessage {
@@ -76,17 +79,32 @@ export interface NearbyProfile {
   locationUpdatedAt: string
 }
 
-/** A map pin (post) near a queried point, from the nearby_posts RPC. */
+/** An event pin near a queried point, from the nearby_posts RPC. */
 export interface Pin {
   id: string
   userId: string
   authorName: string
   authorAvatarUrl?: string
-  content: string
+  title: string
+  category: string
+  startsAt: string
+  durationMin: number
+  description?: string
   lat: number
   lng: number
   distanceM: number
   createdAt: string
+}
+
+export interface CreateEventPinInput {
+  title: string
+  category: string
+  lat: number
+  lng: number
+  /** minutes from now; 0 = starts now */
+  startsInMin: number
+  durationMin: number
+  description?: string
 }
 
 export type LocationSharing = 'precise' | 'fuzzed' | 'off'

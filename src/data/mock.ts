@@ -17,6 +17,13 @@ export const INTEREST_BY_ID: Record<string, Interest> = Object.fromEntries(
   INTERESTS.map((i) => [i.id, i]),
 )
 
+const GENERIC_INTEREST: Interest = { id: 'pin', label: 'Meetup', emoji: '📍', color: '#94a3b8' }
+
+/** Like INTEREST_BY_ID but safe for categories from remote pins. */
+export function interestFor(category: string): Interest {
+  return INTEREST_BY_ID[category] ?? GENERIC_INTEREST
+}
+
 const rand = (min: number, max: number) => min + Math.random() * (max - min)
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
 

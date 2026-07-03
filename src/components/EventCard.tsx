@@ -1,5 +1,5 @@
 import type { SocialEvent, World } from '../types'
-import { INTEREST_BY_ID } from '../data/mock'
+import { interestFor } from '../data/mock'
 import { isLive, timeLabel } from '../sim/engine'
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function EventCard({ event, world, joined, onJoin, onChat, onClose }: Props) {
-  const interest = INTEREST_BY_ID[event.category]
+  const interest = interestFor(event.category)
   const attendees = event.attendees
     .map((id) => world.members.find((m) => m.id === id))
     .filter((m): m is NonNullable<typeof m> => Boolean(m))

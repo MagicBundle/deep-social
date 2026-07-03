@@ -28,6 +28,7 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | Social sign-in: **Google (real OAuth**, once a client id is configured — [docs/AUTH.md](docs/AUTH.md)**)**, Apple/Meta in labeled demo mode | ✅ |
 | Session persistence (localStorage) + sign-out | ✅ |
 | **Data backbone**: PostGIS schema + RLS, nearby queries, realtime posts, presence — live once a Supabase project is connected ([docs/BACKEND.md](docs/BACKEND.md)) | ✅ code + migration |
+| **Pin your own event**: 📍 button → click the map → composer (activity, title, time) → shared live via Supabase for real sessions, local in demo | ✅ |
 
 ## Architecture
 
@@ -56,3 +57,4 @@ The simulation tick (1.5 s) is deliberately shaped like a realtime feed: swappin
 4. **Chat** — same realtime channel infra; one channel per event + per interest; persist to Postgres.
 5. **Privacy (non-negotiable for live location)** — sharing is opt-in and granular: precise / neighborhood-fuzzed (~500 m jitter) / ghost mode; auto-expiry ("share for 2 h"); visible-to (everyone / shared-interest matches / accepted connections only); no location history retention by default.
 6. **Mobile** — the UI is responsive; a Capacitor wrapper or React Native port gets native background-location and push for "someone with your interests just checked in nearby".
+7. **Facebook event import** — sync a user's existing Facebook events onto the map as pins (Graph API `user_events` scope; requires Meta app review). Deliberately parked until Meta login lands via Supabase Auth.

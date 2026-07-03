@@ -28,8 +28,11 @@ workaround.
 default 'off')`, `last_location geography(point,4326)`,
 `location_updated_at`, timestamps. GiST index on `last_location`.
 
-**posts** — `id`, `user_id → profiles`, `content (≤500 chars)`,
-`location geography(point,4326)`, `created_at`. GiST index on `location`.
+**posts** (event pins, since `0002_event_pins.sql`) — `id`, `user_id → profiles`,
+`title (≤80)`, `category`, `starts_at`, `duration_min`, optional `content`
+description (≤500), `location geography(point,4326)`, `created_at`. GiST index
+on `location`. Created via `create_event_pin(...)`; `nearby_posts` returns
+only pins that are upcoming (next 48 h) or still ongoing.
 
 `geography` (not `geometry`) so `ST_DWithin`/`ST_Distance` work in meters on
 real-earth distances with index support.

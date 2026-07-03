@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import type { Session, World } from '../types'
-import { INTERESTS, INTEREST_BY_ID } from '../data/mock'
+import { INTERESTS, INTEREST_BY_ID, interestFor } from '../data/mock'
 import { isLive, timeLabel } from '../sim/engine'
 
 export interface SearchResult {
@@ -42,7 +42,7 @@ export default function TopBar({ session, world, liveCount, onPick, onSignOut }:
       }
     }
     for (const e of world.events) {
-      const interest = INTEREST_BY_ID[e.category]
+      const interest = interestFor(e.category)
       if (`${e.title} ${e.venue} ${interest.label}`.toLowerCase().includes(q)) {
         out.push({
           kind: 'event',

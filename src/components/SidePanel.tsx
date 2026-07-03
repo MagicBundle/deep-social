@@ -1,5 +1,5 @@
 import type { World } from '../types'
-import { INTERESTS, INTEREST_BY_ID } from '../data/mock'
+import { INTERESTS, INTEREST_BY_ID, interestFor } from '../data/mock'
 import { isLive, timeLabel } from '../sim/engine'
 
 export type PanelTab = 'events' | 'people' | 'mine'
@@ -68,7 +68,7 @@ export default function SidePanel({
       <div className="panel-list">
         {tab === 'events' &&
           events.map((e) => {
-            const interest = INTEREST_BY_ID[e.category]
+            const interest = interestFor(e.category)
             return (
               <button
                 key={e.id}
@@ -117,7 +117,7 @@ export default function SidePanel({
             </p>
           ) : (
             mine.map((e) => {
-              const interest = INTEREST_BY_ID[e.category]
+              const interest = interestFor(e.category)
               return (
                 <button key={e.id} className="event-row" onClick={() => onSelectEvent(e.id)}>
                   <span className="row-emoji" style={{ background: `${interest.color}22`, borderColor: interest.color }}>

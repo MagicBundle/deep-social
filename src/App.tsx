@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ChatMessage, MapFocus, Provider, Session } from './types'
+import type { ChatMessage, MapFocus, Pin, Provider, Session, SocialEvent } from './types'
 import {
   isBackendConfigured,
   loadSession,
@@ -8,7 +8,8 @@ import {
   saveSession,
   signOutEverywhere,
 } from './auth'
-import { CHAT_REPLIES, CHAT_SEEDS } from './data/mock'
+import { CHAT_REPLIES, CHAT_SEEDS, CITY_CENTER } from './data/mock'
+import { createEventPin, getNearbyPins, subscribeToPosts } from './services/db'
 import { isLive, useSimulation } from './sim/engine'
 import LoginScreen from './components/LoginScreen'
 import TopBar, { type SearchResult } from './components/TopBar'
@@ -16,6 +17,7 @@ import SidePanel, { type PanelTab } from './components/SidePanel'
 import MapView from './components/MapView'
 import EventCard from './components/EventCard'
 import ChatDrawer from './components/ChatDrawer'
+import PinComposer, { type PinFormValues } from './components/PinComposer'
 
 interface Toast {
   id: number
@@ -32,6 +34,23 @@ const PROVIDER_NAME: Record<Provider, string> = {
 let uid = 0
 const nextId = () => ++uid
 
+function pinToEvent(p: Pin): SocialEvent {
+  return {
+    id: `pin-${p.id}`,
+    title: p.title,
+    venue: p.authorName ? `Pinned by ${p.authorName}` : 'Community pin',
+    category: p.category,
+    lat: p.lat,
+    lng: p.lng,
+    startsInMin: Math.round((new Date(p.startsAt).getTime() - Date.now()) / 60_000),
+    durationMin: p.durationMin,
+    description: p.description ?? '',
+    attendees: [],
+    isPin: true,
+    authorName: p.authorName,
+  }
+}
+
 export default function App() {
   const [session, setSession] = useState<Session | null>(() => loadSession())
   const world = useSimulation(session !== null)
@@ -45,8 +64,19 @@ export default function App() {
   const [focus, setFocus] = useState<MapFocus | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const worldRef = useRef(world)
-  worldRef.current = world
+  // User-created event pins: synced from the backend for real sessions,
+  // local-only in demo mode. Merged with sim events for every consumer.
+  const [userPins, setUserPins] = useState<SocialEvent[]>([])
+  const [pinMode, setPinMode] = useState(false)
+  const [pinDraft, setPinDraft] = useState<{ lat: number; lng: number } | null>(null)
+
+  const displayWorld = {
+    members: world.members,
+    events: [...userPins, ...world.events],
+  }
+  const worldRef = useRef(displayWorld)
+  worldRef.current = displayWorld
+  const backendLive = isBackendConfigured() && Boolean(session?.real)
 
   const toast = (text: string) => {
     const id = nextId()
@@ -86,6 +116,96 @@ export default function App() {
       .catch((e) => console.warn('[auth] session restore failed:', e))
     return onBackendAuthChange((s) => setSession(s))
   }, [])
+
+  // Shared pins: initial load around the demo city + realtime invalidation.
+  // Requires a real session — the RPCs are authenticated-only by design.
+  useEffect(() => {
+    if (!backendLive) return
+    let cancelled = false
+    const refresh = () => {
+      getNearbyPins(CITY_CENTER.lat, CITY_CENTER.lng, 15_000)
+        .then((pins) => {
+          if (cancelled) return
+          setUserPins((prev) => {
+            const remote = pins.map(pinToEvent)
+            const remoteIds = new Set(remote.map((e) => e.id))
+            const localOnly = prev.filter(
+              (p) => p.id.startsWith('local-') && !remoteIds.has(p.id),
+            )
+            return [...remote, ...localOnly]
+          })
+        })
+        .catch((e) => console.warn('[pins] fetch failed:', e))
+    }
+    refresh()
+    const unsubscribe = subscribeToPosts(refresh)
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backendLive])
+
+  // Esc exits pin-drop mode / closes the composer
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPinMode(false)
+        setPinDraft(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const handlePickLocation = (lat: number, lng: number) => {
+    setPinDraft({ lat, lng })
+    setPinMode(false)
+  }
+
+  const handleCreatePin = async (values: PinFormValues) => {
+    if (!pinDraft || !session) return
+    const spot = pinDraft
+    setPinDraft(null)
+    let id = `local-${nextId()}`
+    if (backendLive) {
+      try {
+        const remoteId = await createEventPin({
+          title: values.title,
+          category: values.category,
+          lat: spot.lat,
+          lng: spot.lng,
+          startsInMin: values.startsInMin,
+          durationMin: values.durationMin,
+          description: values.description || undefined,
+        })
+        id = `pin-${remoteId}`
+        toast('Pinned to the live map 🌍 — everyone nearby can see it')
+      } catch (e) {
+        console.warn('[pins] backend create failed:', e)
+        toast('Could not sync the pin — kept locally (is migration 0002 applied?)')
+      }
+    } else {
+      toast('Pinned! Local only in demo mode — Google sign-in publishes for real')
+    }
+    const event: SocialEvent = {
+      id,
+      title: values.title,
+      venue: `Pinned by ${session.name}`,
+      category: values.category,
+      lat: spot.lat,
+      lng: spot.lng,
+      startsInMin: values.startsInMin,
+      durationMin: values.durationMin,
+      description: values.description,
+      attendees: [],
+      isPin: true,
+      authorName: session.name,
+    }
+    setUserPins((prev) => [event, ...prev.filter((p) => p.id !== id)])
+    setJoined((prev) => new Set(prev).add(id))
+    setSelectedEventId(id)
+  }
 
   const selectEvent = (id: string) => {
     setSelectedEventId(id)
@@ -225,30 +345,33 @@ export default function App() {
 
   if (!session) return <LoginScreen onLogin={handleLogin} />
 
-  const selectedEvent = world.events.find((e) => e.id === selectedEventId) ?? null
-  const chatEvent = world.events.find((e) => e.id === chatEventId) ?? null
-  const liveCount = world.events.filter(isLive).length
+  const selectedEvent = displayWorld.events.find((e) => e.id === selectedEventId) ?? null
+  const chatEvent = displayWorld.events.find((e) => e.id === chatEventId) ?? null
+  const liveCount = displayWorld.events.filter(isLive).length
 
   return (
     <div className={`app${chatEvent ? ' chat-open' : ''}`}>
       <MapView
-        world={world}
+        world={displayWorld}
         filters={filters}
         selectedEventId={selectedEventId}
         onSelectEvent={selectEvent}
         focus={focus}
+        pinMode={pinMode}
+        draftPin={pinDraft}
+        onPickLocation={handlePickLocation}
       />
 
       <TopBar
         session={session}
-        world={world}
+        world={displayWorld}
         liveCount={liveCount}
         onPick={handleSearchPick}
         onSignOut={handleSignOut}
       />
 
       <SidePanel
-        world={world}
+        world={displayWorld}
         filters={filters}
         onToggleFilter={toggleFilter}
         tab={tab}
@@ -258,10 +381,33 @@ export default function App() {
         onSelectEvent={selectEvent}
       />
 
+      <button
+        className={`fab-pin${pinMode ? ' cancel' : ''}`}
+        onClick={() => {
+          setPinMode((m) => !m)
+          setPinDraft(null)
+        }}
+      >
+        {pinMode ? '✕ Cancel' : '📍 Pin event'}
+      </button>
+
+      {pinMode && !pinDraft && (
+        <div className="pin-hint">Click the map where your event happens · Esc to cancel</div>
+      )}
+
+      {pinDraft && session && (
+        <PinComposer
+          location={pinDraft}
+          live={backendLive}
+          onCreate={handleCreatePin}
+          onCancel={() => setPinDraft(null)}
+        />
+      )}
+
       {selectedEvent && (
         <EventCard
           event={selectedEvent}
-          world={world}
+          world={displayWorld}
           joined={joined.has(selectedEvent.id)}
           onJoin={() => handleJoin(selectedEvent.id)}
           onChat={() => openChat(selectedEvent.id)}

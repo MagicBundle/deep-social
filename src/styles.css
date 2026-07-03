@@ -882,6 +882,199 @@ input {
   font-size: 15px;
 }
 
+/* ---------- Event pinning ---------- */
+
+.fab-pin {
+  position: absolute;
+  right: 12px;
+  bottom: 110px;
+  z-index: 1070;
+  padding: 12px 18px;
+  border-radius: 99px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, var(--brand-a), var(--brand-b));
+  box-shadow: var(--shadow), 0 0 18px rgba(124, 58, 237, 0.45);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.fab-pin:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.fab-pin.cancel {
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.pin-hint {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1075;
+  padding: 9px 16px;
+  border-radius: 99px;
+  background: var(--panel-solid);
+  border: 1px solid var(--brand-b);
+  font-size: 12.5px;
+  box-shadow: var(--shadow);
+  animation: rise-c 0.25s ease;
+  pointer-events: none;
+}
+
+.map-root.pin-mode,
+.map-root.pin-mode .leaflet-grab,
+.map-root.pin-mode .leaflet-interactive {
+  cursor: crosshair !important;
+}
+
+.draft-pin {
+  font-size: 30px;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
+  animation: drop-bounce 0.4s ease;
+}
+
+@keyframes drop-bounce {
+  0% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(2px);
+    opacity: 1;
+  }
+}
+
+/* User-created pins get a dashed ring so they read as community content */
+.e-pin.pinned .e-core {
+  border-style: dashed;
+}
+
+.composer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(6, 8, 12, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: rise-c 0.2s ease;
+}
+
+.pin-composer {
+  position: relative;
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 22px 22px 18px;
+}
+
+.pin-composer h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.composer-sub {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.composer-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 12px 0 6px;
+}
+
+.composer-label .optional {
+  text-transform: none;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.composer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.composer-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  outline: none;
+  resize: none;
+  font: inherit;
+  color: inherit;
+}
+
+.composer-input:focus {
+  border-color: var(--brand-b);
+}
+
+.composer-row {
+  display: flex;
+  gap: 18px;
+}
+
+.composer-row > div {
+  flex: 1;
+}
+
+.composer-seg {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.composer-seg button {
+  flex: 1;
+  padding: 8px 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+  border-right: 1px solid var(--border);
+}
+
+.composer-seg button:last-child {
+  border-right: none;
+}
+
+.composer-seg button.active {
+  background: color-mix(in srgb, var(--brand-b) 22%, transparent);
+  color: var(--text);
+}
+
+.composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.composer-actions .btn-join:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ---------- Toasts ---------- */
 
 .toasts {

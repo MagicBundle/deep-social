@@ -1,4 +1,4 @@
-import type { LocationSharing, MyProfile, NearbyProfile, Pin } from '../types'
+import type { CreateEventPinInput, LocationSharing, MyProfile, NearbyProfile, Pin } from '../types'
 import { getSupabase } from './supabase'
 
 // Typed data layer over the SQL API defined in supabase/migrations/.
@@ -120,7 +120,11 @@ export async function getNearbyPins(
     userId: r.user_id as string,
     authorName: r.author_name as string,
     authorAvatarUrl: (r.author_avatar_url as string | null) ?? undefined,
-    content: r.content as string,
+    title: r.title as string,
+    category: r.category as string,
+    startsAt: r.starts_at as string,
+    durationMin: r.duration_min as number,
+    description: (r.description as string | null) ?? undefined,
     lat: r.lat as number,
     lng: r.lng as number,
     distanceM: r.distance_m as number,
@@ -128,11 +132,19 @@ export async function getNearbyPins(
   }))
 }
 
-export async function createPost(content: string, lat: number, lng: number): Promise<string> {
-  const trimmed = content.trim()
-  if (!trimmed) fail('createPost', 'content is empty')
-  const { data, error } = await getSupabase().rpc('create_post', { content: trimmed, lat, lng })
-  if (error) fail('createPost', error.message)
+export async function createEventPin(input: CreateEventPinInput): Promise<string> {
+  const title = input.title.trim()
+  if (!title) fail('createEventPin', 'title is empty')
+  const { data, error } = await getSupabase().rpc('create_event_pin', {
+    title,
+    category: input.category,
+    lat: input.lat,
+    lng: input.lng,
+    starts_at: new Date(Date.now() + input.startsInMin * 60_000).toISOString(),
+    duration_min: input.durationMin,
+    description: input.description?.trim() || null,
+  })
+  if (error) fail('createEventPin', error.message)
   return data as string
 }
 
