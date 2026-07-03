@@ -19,6 +19,7 @@ import EventCard from './components/EventCard'
 import ChatDrawer from './components/ChatDrawer'
 import PinComposer, { type PinFormValues } from './components/PinComposer'
 import VibeComposer from './components/VibeComposer'
+import InterestChips from './components/InterestChips'
 
 interface Toast {
   id: number
@@ -127,7 +128,8 @@ export default function App() {
     if (!backendLive) return
     let cancelled = false
     const refresh = () => {
-      getNearbyPins(CITY_CENTER.lat, CITY_CENTER.lng, 15_000)
+      // 60 km radius: covers the whole country from Luxembourg City
+      getNearbyPins(CITY_CENTER.lat, CITY_CENTER.lng, 60_000)
         .then((pins) => {
           if (cancelled) return
           setUserPins((prev) => {
@@ -417,6 +419,12 @@ export default function App() {
         onPick={handleSearchPick}
         onSignOut={handleSignOut}
       />
+
+      {/* Mobile-only: glassy horizontal filter bar over the map (the same
+          chips live inside the side panel on desktop) */}
+      <div className="chips-bar">
+        <InterestChips filters={filters} onToggle={toggleFilter} />
+      </div>
 
       <SidePanel
         world={displayWorld}

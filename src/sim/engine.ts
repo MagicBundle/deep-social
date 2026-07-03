@@ -6,7 +6,8 @@ import { EVENTS, MEMBERS } from '../data/mock'
 // city or walk toward the event they plan to attend. In production this state
 // would arrive over a WebSocket from opted-in location sharing.
 
-const BBOX = { minLat: 48.832, maxLat: 48.892, minLng: 2.275, maxLng: 2.415 }
+// Roaming bounds: the country of Luxembourg (roughly)
+const BBOX = { minLat: 49.45, maxLat: 49.95, minLng: 5.85, maxLng: 6.45 }
 const TICK_MS = 1500
 const ARRIVE_DIST = 0.0012
 

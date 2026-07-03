@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import type { MapFocus, SocialEvent, World } from '../types'
-import { CITY_CENTER, INTEREST_BY_ID, interestFor } from '../data/mock'
+import { CITY_CENTER, DEFAULT_VIEW, INTEREST_BY_ID, interestFor } from '../data/mock'
 import { isLive } from '../sim/engine'
 
 interface Props {
@@ -64,7 +64,7 @@ export default function MapView({
     const map = L.map(containerRef.current!, {
       zoomControl: false,
       attributionControl: true,
-    }).setView([CITY_CENTER.lat, CITY_CENTER.lng], 13)
+    }).setView([DEFAULT_VIEW.lat, DEFAULT_VIEW.lng], DEFAULT_VIEW.zoom)
 
     L.tileLayer(TILE_URL, { attribution: TILE_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(map)
     L.control.zoom({ position: 'bottomright' }).addTo(map)

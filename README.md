@@ -19,7 +19,7 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 
 | Feature | Status |
 | --- | --- |
-| Map-first UI (Leaflet + dark CARTO tiles, demo city: Paris) | ✅ |
+| Map-first UI (Leaflet + dark CARTO tiles, demo country: Luxembourg) | ✅ |
 | Live tracking — simulated members roam or *head to events they plan to attend*, attendee counts update as they arrive | ✅ |
 | Interest filter chips (music, running, food, tech, …) that dim non-matching pins | ✅ |
 | Universal search (events / people / interests) in the menu bar, with fly-to | ✅ |
@@ -32,6 +32,7 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | **Address search & reverse geocoding** (Photon/OSM, no key): map clicks resolve to real addresses, and the composer's place search relocates the pin | ✅ |
 | **Real attendance**: join/leave persists to the DB with live counts on every map | ✅ |
 | **Vibe Checks 📸**: attendees attach photos to pins (EXIF-stripped, compressed client-side); camera badge on the map, carousel + report button in the card | ✅ |
+| **Mobile bottom-sheet UI**: draggable peek/half/full events sheet (~90% map visible collapsed), horizontal glass filter bar, iOS safe-area aware | ✅ |
 
 ## Architecture
 

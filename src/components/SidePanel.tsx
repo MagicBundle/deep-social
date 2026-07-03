@@ -1,8 +1,17 @@
+import { useRef, useState } from 'react'
 import type { World } from '../types'
-import { INTERESTS, INTEREST_BY_ID, interestFor } from '../data/mock'
+import { INTEREST_BY_ID, interestFor } from '../data/mock'
 import { attendingCount, isLive, timeLabel } from '../sim/engine'
+import InterestChips from './InterestChips'
 
 export type PanelTab = 'events' | 'people' | 'mine'
+
+/** Mobile bottom-sheet states (CSS ignores these on desktop):
+ *  peek = handle + summary only (~80% of the map visible). */
+type SheetState = 'peek' | 'half' | 'full'
+const SHEET_UP: Record<SheetState, SheetState> = { peek: 'half', half: 'full', full: 'full' }
+const SHEET_DOWN: Record<SheetState, SheetState> = { full: 'half', half: 'peek', peek: 'peek' }
+const SWIPE_THRESHOLD_PX = 36
 
 interface Props {
   world: World
@@ -25,12 +34,46 @@ export default function SidePanel({
   selectedEventId,
   onSelectEvent,
 }: Props) {
+  const [sheet, setSheet] = useState<SheetState>('peek')
+  const swipe = useRef<{ startY: number; lastY: number; moved: boolean } | null>(null)
+
+  const onHandleTouchStart = (e: React.TouchEvent) => {
+    const y = e.touches[0].clientY
+    swipe.current = { startY: y, lastY: y, moved: false }
+  }
+  const onHandleTouchMove = (e: React.TouchEvent) => {
+    if (!swipe.current) return
+    swipe.current.lastY = e.touches[0].clientY
+    if (Math.abs(swipe.current.lastY - swipe.current.startY) > 8) swipe.current.moved = true
+  }
+  const onHandleTouchEnd = () => {
+    if (!swipe.current) return
+    const delta = swipe.current.lastY - swipe.current.startY
+    if (delta < -SWIPE_THRESHOLD_PX) setSheet((s) => SHEET_UP[s])
+    else if (delta > SWIPE_THRESHOLD_PX) setSheet((s) => SHEET_DOWN[s])
+    // leave swipe.current set briefly so the synthetic click can see `moved`
+    setTimeout(() => (swipe.current = null), 300)
+  }
+  const onHandleClick = () => {
+    if (swipe.current?.moved) return
+    setSheet((s) => (s === 'peek' ? 'half' : 'peek'))
+  }
+
+  // Selecting anything from the list: get the sheet out of the way so the
+  // map fly-to and the event card are visible.
+  const selectAndReveal = (id: string) => {
+    setSheet('peek')
+    onSelectEvent(id)
+  }
+
   const matchesFilter = (categories: string[]) =>
     filters.size === 0 || categories.some((c) => filters.has(c))
 
   const events = world.events
     .filter((e) => matchesFilter([e.category]))
     .sort((a, b) => a.startsInMin - b.startsInMin)
+
+  const liveCount = world.events.filter(isLive).length
 
   const people = world.members
     .filter((m) => matchesFilter(m.interests))
@@ -39,18 +82,24 @@ export default function SidePanel({
   const mine = world.events.filter((e) => joined.has(e.id))
 
   return (
-    <aside className="side-panel">
+    <aside className={`side-panel sheet-${sheet}`}>
+      <div
+        className="sheet-handle"
+        onTouchStart={onHandleTouchStart}
+        onTouchMove={onHandleTouchMove}
+        onTouchEnd={onHandleTouchEnd}
+        onClick={onHandleClick}
+        role="button"
+        aria-label="Expand or collapse the events panel"
+      >
+        <span className="handle-bar" />
+        <span className="sheet-summary">
+          {liveCount} live now · {events.length} events nearby
+        </span>
+      </div>
+
       <div className="chips">
-        {INTERESTS.map((i) => (
-          <button
-            key={i.id}
-            className={`chip${filters.has(i.id) ? ' active' : ''}`}
-            style={{ ['--c' as string]: i.color }}
-            onClick={() => onToggleFilter(i.id)}
-          >
-            {i.emoji} {i.label}
-          </button>
-        ))}
+        <InterestChips filters={filters} onToggle={onToggleFilter} />
       </div>
 
       <div className="panel-tabs">
@@ -73,7 +122,7 @@ export default function SidePanel({
               <button
                 key={e.id}
                 className={`event-row${e.id === selectedEventId ? ' selected' : ''}`}
-                onClick={() => onSelectEvent(e.id)}
+                onClick={() => selectAndReveal(e.id)}
               >
                 <span className="row-emoji" style={{ background: `${interest.color}22`, borderColor: interest.color }}>
                   {interest.emoji}
@@ -119,7 +168,7 @@ export default function SidePanel({
             mine.map((e) => {
               const interest = interestFor(e.category)
               return (
-                <button key={e.id} className="event-row" onClick={() => onSelectEvent(e.id)}>
+                <button key={e.id} className="event-row" onClick={() => selectAndReveal(e.id)}>
                   <span className="row-emoji" style={{ background: `${interest.color}22`, borderColor: interest.color }}>
                     {interest.emoji}
                   </span>
