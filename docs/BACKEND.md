@@ -30,9 +30,11 @@ default 'off')`, `last_location geography(point,4326)`,
 
 **posts** (event pins, since `0002_event_pins.sql`) — `id`, `user_id → profiles`,
 `title (≤80)`, `category`, `starts_at`, `duration_min`, optional `content`
-description (≤500), `location geography(point,4326)`, `created_at`. GiST index
-on `location`. Created via `create_event_pin(...)`; `nearby_posts` returns
-only pins that are upcoming (next 48 h) or still ongoing.
+description (≤500), optional `venue` label (≤120, since `0003_pin_venue.sql`,
+resolved client-side via Photon geocoding at creation), `location
+geography(point,4326)`, `created_at`. GiST index on `location`. Created via
+`create_event_pin(...)`; `nearby_posts` returns only pins that are upcoming
+(next 48 h) or still ongoing.
 
 `geography` (not `geometry`) so `ST_DWithin`/`ST_Distance` work in meters on
 real-earth distances with index support.

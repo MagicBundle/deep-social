@@ -125,6 +125,7 @@ export async function getNearbyPins(
     startsAt: r.starts_at as string,
     durationMin: r.duration_min as number,
     description: (r.description as string | null) ?? undefined,
+    venue: (r.venue as string | null) ?? undefined,
     lat: r.lat as number,
     lng: r.lng as number,
     distanceM: r.distance_m as number,
@@ -143,6 +144,7 @@ export async function createEventPin(input: CreateEventPinInput): Promise<string
     starts_at: new Date(Date.now() + input.startsInMin * 60_000).toISOString(),
     duration_min: input.durationMin,
     description: input.description?.trim() || null,
+    venue: input.venue?.trim() || null,
   })
   if (error) fail('createEventPin', error.message)
   return data as string

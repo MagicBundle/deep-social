@@ -29,6 +29,7 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | Session persistence (localStorage) + sign-out | ✅ |
 | **Data backbone**: PostGIS schema + RLS, nearby queries, realtime posts, presence — live once a Supabase project is connected ([docs/BACKEND.md](docs/BACKEND.md)) | ✅ code + migration |
 | **Pin your own event**: 📍 button → click the map → composer (activity, title, time) → shared live via Supabase for real sessions, local in demo | ✅ |
+| **Address search & reverse geocoding** (Photon/OSM, no key): map clicks resolve to real addresses, and the composer's place search relocates the pin | ✅ |
 
 ## Architecture
 

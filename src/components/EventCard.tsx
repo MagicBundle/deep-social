@@ -32,6 +32,7 @@ export default function EventCard({ event, world, joined, onJoin, onChat, onClos
           <p className="card-meta">
             {event.venue} · <span className={isLive(event) ? 'live-text' : ''}>{timeLabel(event)}</span> ·{' '}
             {interest.label}
+            {event.isPin && event.authorName ? ` · by ${event.authorName}` : ''}
           </p>
         </div>
       </div>

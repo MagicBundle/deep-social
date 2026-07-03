@@ -110,11 +110,14 @@ do $$
 declare pid uuid; p record;
 begin
   pid := public.create_event_pin('Sunset run — river loop', 'running', 48.8639, 2.3136,
-                                 now() + interval '30 minutes', 90, 'Easy pace, all welcome');
+                                 now() + interval '30 minutes', 90, 'Easy pace, all welcome',
+                                 'Pont Alexandre III, Paris');
   select * into p from public.nearby_posts(48.8566, 2.3522, 5000) limit 1;
   if p.id is distinct from pid then raise exception 'FAIL pins: created pin not returned'; end if;
   if p.title <> 'Sunset run — river loop' or p.category <> 'running' or p.duration_min <> 90
     then raise exception 'FAIL pins: structured fields wrong'; end if;
+  if p.venue <> 'Pont Alexandre III, Paris'
+    then raise exception 'FAIL pins: venue not persisted (%)', p.venue; end if;
   if p.author_name <> 'Alice' then raise exception 'FAIL pins: author join wrong (%)', p.author_name; end if;
   if p.distance_m not between 2500 and 3500
     then raise exception 'FAIL pins: distance % outside sanity band', p.distance_m; end if;

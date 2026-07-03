@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { INTERESTS } from '../data/mock'
+import { reverseGeocode, searchPlaces, type Place } from '../services/geocoding'
 
 export interface PinFormValues {
   title: string
@@ -7,13 +8,16 @@ export interface PinFormValues {
   startsInMin: number
   durationMin: number
   description: string
+  venue: string | null
 }
 
 interface Props {
   location: { lat: number; lng: number }
   live: boolean
+  onLocationChange: (lat: number, lng: number) => void
   onCreate: (values: PinFormValues) => void
   onCancel: () => void
+  onRepickOnMap: () => void
 }
 
 const START_OPTIONS = [
@@ -28,18 +32,87 @@ const DURATION_OPTIONS = [
   { label: '3 h', min: 180 },
 ]
 
-export default function PinComposer({ location, live, onCreate, onCancel }: Props) {
+const SEARCH_DEBOUNCE_MS = 350
+
+export default function PinComposer({
+  location,
+  live,
+  onLocationChange,
+  onCreate,
+  onCancel,
+  onRepickOnMap,
+}: Props) {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string | null>(null)
   const [startsInMin, setStartsInMin] = useState(0)
   const [durationMin, setDurationMin] = useState(120)
   const [description, setDescription] = useState('')
 
+  // Location naming: reverse-geocoded from the map click, replaceable via
+  // address search (which also moves the draft pin).
+  const [venue, setVenue] = useState<string | null>(null)
+  const [resolving, setResolving] = useState(true)
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<Place[]>([])
+  const abortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setResolving(true)
+    reverseGeocode(location.lat, location.lng)
+      .then((place) => {
+        if (!cancelled) setVenue((v) => v ?? place?.label ?? null)
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setResolving(false)
+      })
+    return () => {
+      cancelled = true
+    }
+    // Only for the spot picked on the map; search picks set venue directly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    abortRef.current?.abort()
+    if (query.trim().length < 3) {
+      setResults([])
+      return
+    }
+    const controller = new AbortController()
+    abortRef.current = controller
+    const t = setTimeout(() => {
+      searchPlaces(query, location, { signal: controller.signal })
+        .then(setResults)
+        .catch(() => {})
+    }, SEARCH_DEBOUNCE_MS)
+    return () => {
+      clearTimeout(t)
+      controller.abort()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query])
+
+  const pickPlace = (place: Place) => {
+    setVenue(place.label)
+    setQuery('')
+    setResults([])
+    onLocationChange(place.lat, place.lng)
+  }
+
   const valid = title.trim().length > 0 && category !== null
 
   const submit = () => {
     if (!valid) return
-    onCreate({ title: title.trim(), category: category!, startsInMin, durationMin, description })
+    onCreate({
+      title: title.trim(),
+      category: category!,
+      startsInMin,
+      durationMin,
+      description,
+      venue,
+    })
   }
 
   return (
@@ -50,8 +123,40 @@ export default function PinComposer({ location, live, onCreate, onCancel }: Prop
         </button>
         <h3>📍 Pin your event</h3>
         <p className="composer-sub">
-          At {location.lat.toFixed(4)}, {location.lng.toFixed(4)} ·{' '}
-          {live ? 'visible to everyone on the live map' : 'local only (demo session)'}
+          {live ? 'Visible to everyone on the live map' : 'Local only (demo session)'}
+        </p>
+
+        <label className="composer-label" htmlFor="pin-where">
+          Where
+        </label>
+        <div className="composer-where">
+          <input
+            id="pin-where"
+            className="composer-input"
+            value={query}
+            placeholder="Search an address or place…"
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {results.length > 0 && (
+            <div className="where-results">
+              {results.map((r, i) => (
+                <button key={`${r.lat}-${r.lng}-${i}`} onClick={() => pickPlace(r)}>
+                  <span className="where-emoji">📍</span>
+                  <span>{r.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <p className="where-current">
+          📍{' '}
+          {venue ??
+            (resolving
+              ? 'Finding the address…'
+              : `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`)}
+          <button className="where-repick" onClick={onRepickOnMap}>
+            pick on map instead
+          </button>
         </p>
 
         <label className="composer-label">What kind of get-together?</label>
@@ -79,7 +184,6 @@ export default function PinComposer({ location, live, onCreate, onCancel }: Prop
           placeholder="e.g. Pétanque & picnic, all levels"
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
-          autoFocus
         />
 
         <div className="composer-row">

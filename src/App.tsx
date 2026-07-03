@@ -38,7 +38,7 @@ function pinToEvent(p: Pin): SocialEvent {
   return {
     id: `pin-${p.id}`,
     title: p.title,
-    venue: p.authorName ? `Pinned by ${p.authorName}` : 'Community pin',
+    venue: p.venue ?? (p.authorName ? `Pinned by ${p.authorName}` : 'Community pin'),
     category: p.category,
     lat: p.lat,
     lng: p.lng,
@@ -178,6 +178,7 @@ export default function App() {
           startsInMin: values.startsInMin,
           durationMin: values.durationMin,
           description: values.description || undefined,
+          venue: values.venue || undefined,
         })
         id = `pin-${remoteId}`
         toast('Pinned to the live map 🌍 — everyone nearby can see it')
@@ -191,7 +192,7 @@ export default function App() {
     const event: SocialEvent = {
       id,
       title: values.title,
-      venue: `Pinned by ${session.name}`,
+      venue: values.venue ?? `Pinned by ${session.name}`,
       category: values.category,
       lat: spot.lat,
       lng: spot.lng,
@@ -399,8 +400,16 @@ export default function App() {
         <PinComposer
           location={pinDraft}
           live={backendLive}
+          onLocationChange={(lat, lng) => {
+            setPinDraft({ lat, lng })
+            flyTo(lat, lng, 15)
+          }}
           onCreate={handleCreatePin}
           onCancel={() => setPinDraft(null)}
+          onRepickOnMap={() => {
+            setPinDraft(null)
+            setPinMode(true)
+          }}
         />
       )}
 

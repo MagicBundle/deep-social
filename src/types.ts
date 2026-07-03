@@ -90,6 +90,7 @@ export interface Pin {
   startsAt: string
   durationMin: number
   description?: string
+  venue?: string
   lat: number
   lng: number
   distanceM: number
@@ -105,6 +106,7 @@ export interface CreateEventPinInput {
   startsInMin: number
   durationMin: number
   description?: string
+  venue?: string
 }
 
 export type LocationSharing = 'precise' | 'fuzzed' | 'off'
