@@ -134,6 +134,74 @@ begin
   raise notice 'PASS: create_event_pin + nearby_posts (fields, author, distance, lifecycle)';
 end $$;
 
+-- ── attendance + vibe checks (0004) ─────────────────────────────────────
+do $$
+declare pid uuid; n int;
+begin
+  select id into pid from public.posts where title = 'Sunset run — river loop';
+  -- creator auto-joined
+  if not exists (select 1 from public.attendees
+                 where post_id = pid and user_id = '00000000-0000-0000-0000-00000000000a')
+    then raise exception 'FAIL attendance: creator not auto-joined'; end if;
+  if (select attendee_count from public.posts where id = pid) <> 1
+    then raise exception 'FAIL attendance: initial count wrong'; end if;
+  raise notice 'PASS: pin creator auto-joined with correct count';
+end $$;
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+
+do $$
+declare pid uuid; n int; mid uuid;
+begin
+  select id into pid from public.posts where title = 'Sunset run — river loop';
+
+  n := public.join_meetup(pid);
+  if n <> 2 then raise exception 'FAIL attendance: join count % (want 2)', n; end if;
+  n := public.join_meetup(pid);  -- idempotent
+  if n <> 2 then raise exception 'FAIL attendance: duplicate join changed count to %', n; end if;
+  if not (select np.joined from public.nearby_posts(48.8566, 2.3522, 5000) np where np.id = pid)
+    then raise exception 'FAIL attendance: joined flag false for attendee'; end if;
+
+  -- attendee can post a vibe
+  mid := public.add_vibe_media(pid, pid::text || '/test-vibe.jpg');
+  if (select np.media_count from public.nearby_posts(48.8566, 2.3522, 5000) np where np.id = pid) <> 1
+    then raise exception 'FAIL vibes: media_count wrong'; end if;
+
+  n := public.leave_meetup(pid);
+  if n <> 1 then raise exception 'FAIL attendance: leave count % (want 1)', n; end if;
+  raise notice 'PASS: join/leave lifecycle, joined flag, attendee vibe upload';
+end $$;
+
+-- non-attendee is blocked from posting vibes
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+
+do $$
+declare pid uuid; ok boolean := false; mid uuid;
+begin
+  select id into pid from public.posts where title = 'Sunset run — river loop';
+  begin
+    perform public.add_vibe_media(pid, pid::text || '/intruder.jpg');
+  exception when insufficient_privilege then ok := true;
+  end;
+  if not ok then raise exception 'FAIL vibes: non-attendee could attach media'; end if;
+
+  -- but anyone signed in can report media
+  select id into mid from public.media_attachments limit 1;
+  perform public.report_media(mid, 'test report');
+  perform public.report_media(mid, 'duplicate should no-op');
+  raise notice 'PASS: non-attendee blocked from vibes, reporting works';
+end $$;
+
+reset role;
+
+do $$
+begin
+  if (select count(*) from public.reports) <> 1
+    then raise exception 'FAIL reports: expected exactly 1 report row'; end if;
+  raise notice 'PASS: report row persisted once (dupe ignored)';
+end $$;
+
 -- ── RLS + column grants (as the API role) ───────────────────────────────
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);

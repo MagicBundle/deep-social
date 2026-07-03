@@ -954,6 +954,129 @@ input {
   border-style: dashed;
 }
 
+/* Camera badge: this pin has vibe photos */
+.vibe-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--panel-solid);
+  border: 1.5px solid var(--c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- Vibe checks ---------- */
+
+.vibe-strip {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 4px;
+}
+
+.vibe-item {
+  flex: none;
+  margin: 0;
+  scroll-snap-align: start;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.vibe-item img {
+  display: block;
+  height: 130px;
+  width: auto;
+  max-width: 220px;
+  object-fit: cover;
+  background: #0f1117;
+}
+
+.vibe-item figcaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  color: #e8eaf0;
+  background: linear-gradient(transparent, rgba(6, 8, 12, 0.85));
+}
+
+.vibe-report {
+  font-size: 11px;
+  color: #fda4af;
+  padding: 1px 5px;
+  border-radius: 6px;
+}
+
+.vibe-report:hover {
+  background: rgba(244, 63, 94, 0.18);
+}
+
+.vibe-report:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.vibe-composer .vibe-drop {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 26px 0;
+  margin-top: 6px;
+  border: 1.5px dashed var(--border);
+  border-radius: 14px;
+  color: var(--muted);
+  font-size: 13.5px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.vibe-composer .vibe-drop:hover {
+  border-color: var(--brand-b);
+  color: var(--text);
+}
+
+.vibe-composer .vibe-drop span {
+  font-size: 30px;
+}
+
+.vibe-preview {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vibe-preview img {
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #0f1117;
+}
+
+.vibe-preview small {
+  color: var(--muted);
+  font-size: 11.5px;
+  text-align: center;
+}
+
 .composer-backdrop {
   position: fixed;
   inset: 0;

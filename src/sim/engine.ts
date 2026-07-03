@@ -96,3 +96,11 @@ export function timeLabel(e: SocialEvent): string {
 }
 
 export const isLive = (e: SocialEvent) => e.startsInMin <= 0
+
+/** The Supabase row id behind a synced pin, or null for sim/local events. */
+export const remotePinId = (eventId: string): string | null =>
+  eventId.startsWith('pin-') ? eventId.slice(4) : null
+
+/** Attendee count to display: server truth for synced pins, local math else. */
+export const attendingCount = (e: SocialEvent, joinedByMe: boolean): number =>
+  e.attendeeCount ?? e.attendees.length + (joinedByMe ? 1 : 0)

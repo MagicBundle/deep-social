@@ -35,6 +35,9 @@ export interface SocialEvent {
   /** true for user-created pins (local or synced from the backend) */
   isPin?: boolean
   authorName?: string
+  /** server-side truth for remote pins; overrides attendees.length displays */
+  attendeeCount?: number
+  mediaCount?: number
 }
 
 export interface ChatMessage {
@@ -91,10 +94,23 @@ export interface Pin {
   durationMin: number
   description?: string
   venue?: string
+  attendeeCount: number
+  /** whether the current caller is an attendee (from the RPC) */
+  joined: boolean
+  mediaCount: number
   lat: number
   lng: number
   distanceM: number
   createdAt: string
+}
+
+/** A photo attached to an event pin. */
+export interface Vibe {
+  id: string
+  url: string
+  authorName?: string
+  createdAt: string
+  mine: boolean
 }
 
 export interface CreateEventPinInput {

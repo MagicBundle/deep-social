@@ -1,6 +1,6 @@
 import type { World } from '../types'
 import { INTERESTS, INTEREST_BY_ID, interestFor } from '../data/mock'
-import { isLive, timeLabel } from '../sim/engine'
+import { attendingCount, isLive, timeLabel } from '../sim/engine'
 
 export type PanelTab = 'events' | 'people' | 'mine'
 
@@ -84,7 +84,7 @@ export default function SidePanel({
                     {joined.has(e.id) && <em className="joined-tick"> ✓</em>}
                   </strong>
                   <small>
-                    {e.venue} · {e.attendees.length + (joined.has(e.id) ? 1 : 0)} going
+                    {e.venue} · {attendingCount(e, joined.has(e.id))} going
                   </small>
                 </span>
                 <span className={`row-time${isLive(e) ? ' live' : ''}`}>{timeLabel(e)}</span>
@@ -126,7 +126,7 @@ export default function SidePanel({
                   <span className="row-text">
                     <strong>{e.title}</strong>
                     <small>
-                      {e.venue} · {e.attendees.length + 1} going
+                      {e.venue} · {attendingCount(e, true)} going
                     </small>
                   </span>
                   <span className={`row-time${isLive(e) ? ' live' : ''}`}>{timeLabel(e)}</span>

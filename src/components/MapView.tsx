@@ -24,10 +24,12 @@ function eventIconHtml(event: SocialEvent, live: boolean, selected: boolean): st
   const classes = ['e-pin', live && 'live', selected && 'selected', event.isPin && 'pinned']
     .filter(Boolean)
     .join(' ')
+  const vibeBadge = (event.mediaCount ?? 0) > 0 ? '<span class="vibe-badge">📸</span>' : ''
   return `
     <div class="${classes}" style="--c:${interest.color}">
       <div class="e-ring"></div>
       <div class="e-core">${interest.emoji}</div>
+      ${vibeBadge}
     </div>`
 }
 
@@ -127,12 +129,25 @@ export default function MapView({
         marker.addTo(map)
         eventMarkers.current.set(e.id, marker)
       } else {
-        marker.setTooltipContent(`${e.title} · ${e.attendees.length} going`)
+        marker.setTooltipContent(`${e.title} · ${e.attendeeCount ?? e.attendees.length} going`)
         const el = marker.getElement()
         if (el) {
           const pin = el.querySelector('.e-pin')
           pin?.classList.toggle('selected', selected)
           pin?.classList.toggle('live', live)
+          // Camera badge appearing/disappearing needs an icon rebuild
+          const hasBadge = Boolean(el.querySelector('.vibe-badge'))
+          const wantsBadge = (e.mediaCount ?? 0) > 0
+          if (hasBadge !== wantsBadge) {
+            marker.setIcon(
+              L.divIcon({
+                className: 'marker-wrap',
+                html: eventIconHtml(e, live, selected),
+                iconSize: [44, 44],
+                iconAnchor: [22, 22],
+              }),
+            )
+          }
         }
       }
       const el = marker.getElement()

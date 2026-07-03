@@ -1,4 +1,11 @@
-import type { CreateEventPinInput, LocationSharing, MyProfile, NearbyProfile, Pin } from '../types'
+import type {
+  CreateEventPinInput,
+  LocationSharing,
+  MyProfile,
+  NearbyProfile,
+  Pin,
+  Vibe,
+} from '../types'
 import { getSupabase } from './supabase'
 
 // Typed data layer over the SQL API defined in supabase/migrations/.
@@ -126,11 +133,88 @@ export async function getNearbyPins(
     durationMin: r.duration_min as number,
     description: (r.description as string | null) ?? undefined,
     venue: (r.venue as string | null) ?? undefined,
+    attendeeCount: (r.attendee_count as number) ?? 0,
+    joined: Boolean(r.joined),
+    mediaCount: (r.media_count as number) ?? 0,
     lat: r.lat as number,
     lng: r.lng as number,
     distanceM: r.distance_m as number,
     createdAt: r.created_at as string,
   }))
+}
+
+// ─── attendance ──────────────────────────────────────────────────────────
+
+/** Join a pin; returns the server's attendee count. Idempotent. */
+export async function joinMeetup(postId: string): Promise<number> {
+  const { data, error } = await getSupabase().rpc('join_meetup', { post_id: postId })
+  if (error) fail('joinMeetup', error.message)
+  return data as number
+}
+
+export async function leaveMeetup(postId: string): Promise<number> {
+  const { data, error } = await getSupabase().rpc('leave_meetup', { post_id: postId })
+  if (error) fail('leaveMeetup', error.message)
+  return data as number
+}
+
+// ─── vibe checks (photos on pins) ────────────────────────────────────────
+
+const VIBES_BUCKET = 'vibes'
+
+export async function listVibes(postId: string): Promise<Vibe[]> {
+  const supabase = getSupabase()
+  const [{ data, error }, { data: userData }] = await Promise.all([
+    supabase
+      .from('media_attachments')
+      .select('id, storage_path, user_id, created_at, profiles(display_name)')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: false }),
+    supabase.auth.getUser(),
+  ])
+  if (error) fail('listVibes', error.message)
+  const myId = userData.user?.id
+  return (data ?? []).map((r) => {
+    const profile = r.profiles as { display_name?: string } | { display_name?: string }[] | null
+    const authorName = Array.isArray(profile) ? profile[0]?.display_name : profile?.display_name
+    return {
+      id: r.id as string,
+      url: supabase.storage.from(VIBES_BUCKET).getPublicUrl(r.storage_path as string).data
+        .publicUrl,
+      authorName,
+      createdAt: r.created_at as string,
+      mine: r.user_id === myId,
+    }
+  })
+}
+
+/** Upload a processed (canvas re-encoded) JPEG and attach it to a pin.
+ *  RLS/storage policies enforce that only attendees can do this. */
+export async function addVibe(postId: string, image: Blob): Promise<string> {
+  const supabase = getSupabase()
+  const path = `${postId}/${crypto.randomUUID()}.jpg`
+  const { error: uploadError } = await supabase.storage
+    .from(VIBES_BUCKET)
+    .upload(path, image, { contentType: 'image/jpeg', upsert: false })
+  if (uploadError) fail('addVibe', uploadError.message)
+  const { data, error } = await supabase.rpc('add_vibe_media', {
+    post_id: postId,
+    storage_path: path,
+  })
+  if (error) {
+    // Don't strand an orphaned file if the row insert was rejected.
+    void supabase.storage.from(VIBES_BUCKET).remove([path])
+    fail('addVibe', error.message)
+  }
+  return data as string
+}
+
+export async function reportVibe(mediaId: string, reason?: string): Promise<void> {
+  const { error } = await getSupabase().rpc('report_media', {
+    media_id: mediaId,
+    reason: reason ?? null,
+  })
+  if (error) fail('reportVibe', error.message)
 }
 
 export async function createEventPin(input: CreateEventPinInput): Promise<string> {
@@ -152,15 +236,18 @@ export async function createEventPin(input: CreateEventPinInput): Promise<string
 
 // ─── realtime ────────────────────────────────────────────────────────────
 
-/** Fires whenever any user creates a post (RLS-filtered server-side).
- *  The payload's geography column arrives as WKB, so callers should treat
- *  this as an invalidation signal and re-run getNearbyPins for their
- *  viewport. Returns an unsubscribe function. */
+/** Invalidation signal for the pins layer: fires on pin create/delete,
+ *  attendee-count changes (posts UPDATE), and new vibe photos. Callers
+ *  re-run getNearbyPins for their viewport. Returns an unsubscribe fn. */
 export function subscribeToPosts(onChange: () => void): () => void {
   const channel = getSupabase()
     .channel('posts-feed')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, () => onChange())
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'posts' }, () => onChange())
     .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'posts' }, () => onChange())
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'media_attachments' }, () =>
+      onChange(),
+    )
     .subscribe()
   return () => {
     void channel.unsubscribe()

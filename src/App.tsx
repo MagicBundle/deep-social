@@ -9,8 +9,8 @@ import {
   signOutEverywhere,
 } from './auth'
 import { CHAT_REPLIES, CHAT_SEEDS, CITY_CENTER } from './data/mock'
-import { createEventPin, getNearbyPins, subscribeToPosts } from './services/db'
-import { isLive, useSimulation } from './sim/engine'
+import { addVibe, createEventPin, getNearbyPins, joinMeetup, subscribeToPosts } from './services/db'
+import { attendingCount, isLive, remotePinId, useSimulation } from './sim/engine'
 import LoginScreen from './components/LoginScreen'
 import TopBar, { type SearchResult } from './components/TopBar'
 import SidePanel, { type PanelTab } from './components/SidePanel'
@@ -18,6 +18,7 @@ import MapView from './components/MapView'
 import EventCard from './components/EventCard'
 import ChatDrawer from './components/ChatDrawer'
 import PinComposer, { type PinFormValues } from './components/PinComposer'
+import VibeComposer from './components/VibeComposer'
 
 interface Toast {
   id: number
@@ -48,6 +49,8 @@ function pinToEvent(p: Pin): SocialEvent {
     attendees: [],
     isPin: true,
     authorName: p.authorName,
+    attendeeCount: p.attendeeCount,
+    mediaCount: p.mediaCount,
   }
 }
 
@@ -69,6 +72,7 @@ export default function App() {
   const [userPins, setUserPins] = useState<SocialEvent[]>([])
   const [pinMode, setPinMode] = useState(false)
   const [pinDraft, setPinDraft] = useState<{ lat: number; lng: number } | null>(null)
+  const [vibeFor, setVibeFor] = useState<string | null>(null)
 
   const displayWorld = {
     members: world.members,
@@ -133,6 +137,12 @@ export default function App() {
               (p) => p.id.startsWith('local-') && !remoteIds.has(p.id),
             )
             return [...remote, ...localOnly]
+          })
+          // Server truth for "which pins I attend" (e.g. joined on another device)
+          setJoined((prev) => {
+            const next = new Set(prev)
+            for (const p of pins) if (p.joined) next.add(`pin-${p.id}`)
+            return next
           })
         })
         .catch((e) => console.warn('[pins] fetch failed:', e))
@@ -330,6 +340,42 @@ export default function App() {
     const e = worldRef.current.events.find((ev) => ev.id === eventId)
     toast(`You're in! ${e?.title ?? 'Meetup'} added to My meetups 🎉`)
     openChat(eventId)
+
+    // Synced pins: persist attendance server-side (optimistic count bump;
+    // the realtime posts UPDATE will reconcile with server truth).
+    const rawId = remotePinId(eventId)
+    if (rawId && backendLive) {
+      setUserPins((prev) =>
+        prev.map((p) =>
+          p.id === eventId ? { ...p, attendeeCount: (p.attendeeCount ?? 0) + 1 } : p,
+        ),
+      )
+      joinMeetup(rawId).catch((err) => {
+        console.warn('[attendance] join failed:', err)
+        setJoined((prev) => {
+          const next = new Set(prev)
+          next.delete(eventId)
+          return next
+        })
+        setUserPins((prev) =>
+          prev.map((p) =>
+            p.id === eventId ? { ...p, attendeeCount: Math.max((p.attendeeCount ?? 1) - 1, 0) } : p,
+          ),
+        )
+        toast('Could not sync your join — is migration 0004 applied?')
+      })
+    }
+  }
+
+  const handleVibePost = async (event: SocialEvent, image: Blob) => {
+    const rawId = remotePinId(event.id)
+    if (!rawId) return
+    await addVibe(rawId, image)
+    setVibeFor(null)
+    toast('Vibe posted 📸 — visible to everyone on this pin')
+    setUserPins((prev) =>
+      prev.map((p) => (p.id === event.id ? { ...p, mediaCount: (p.mediaCount ?? 0) + 1 } : p)),
+    )
   }
 
   const handleSearchPick = (r: SearchResult) => {
@@ -348,6 +394,7 @@ export default function App() {
 
   const selectedEvent = displayWorld.events.find((e) => e.id === selectedEventId) ?? null
   const chatEvent = displayWorld.events.find((e) => e.id === chatEventId) ?? null
+  const vibeEvent = displayWorld.events.find((e) => e.id === vibeFor) ?? null
   const liveCount = displayWorld.events.filter(isLive).length
 
   return (
@@ -418,9 +465,20 @@ export default function App() {
           event={selectedEvent}
           world={displayWorld}
           joined={joined.has(selectedEvent.id)}
+          backendLive={backendLive}
           onJoin={() => handleJoin(selectedEvent.id)}
           onChat={() => openChat(selectedEvent.id)}
+          onVibeCheck={() => setVibeFor(selectedEvent.id)}
+          onNotify={toast}
           onClose={() => setSelectedEventId(null)}
+        />
+      )}
+
+      {vibeEvent && (
+        <VibeComposer
+          eventTitle={vibeEvent.title}
+          onPost={(image) => handleVibePost(vibeEvent, image)}
+          onClose={() => setVibeFor(null)}
         />
       )}
 
@@ -428,7 +486,7 @@ export default function App() {
         <ChatDrawer
           event={chatEvent}
           messages={messages[chatEvent.id] ?? []}
-          attendeeCount={chatEvent.attendees.length + (joined.has(chatEvent.id) ? 1 : 0)}
+          attendeeCount={attendingCount(chatEvent, joined.has(chatEvent.id))}
           onSend={sendMessage}
           onClose={() => setChatEventId(null)}
         />

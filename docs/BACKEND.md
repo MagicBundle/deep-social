@@ -36,6 +36,27 @@ geography(point,4326)`, `created_at`. GiST index on `location`. Created via
 `create_event_pin(...)`; `nearby_posts` returns only pins that are upcoming
 (next 48 h) or still ongoing.
 
+**attendees** (since `0004_attendance_vibes.sql`) — `(post_id, user_id)` PK,
+maintained via `join_meetup`/`leave_meetup` RPCs (idempotent); pin creators
+auto-join. A definer trigger keeps a denormalized `posts.attendee_count`,
+whose UPDATE broadcasts double as the realtime signal for count changes.
+`nearby_posts` additionally returns the caller's `joined` flag and a
+`media_count`.
+
+**media_attachments** ("Vibe Checks", `0004`) — photos attached to pins:
+`post_id`, `user_id`, `storage_path` (bucket `vibes`, path `<post_id>/<uuid>.jpg`),
+`media_type` (image-only by check constraint). The insert policy is the
+feature's core rule: **only current attendees of a pin can attach media** —
+enforced both on the table RLS and again on the storage bucket's upload
+policy (path's first segment must be a pin the uploader attends). Files are
+canvas-re-encoded client-side before upload (≤1200 px JPEG: cost control,
+format normalization, EXIF/GPS stripped). Bucket caps: 2 MB, image MIME only,
+public read.
+
+**reports** (`0004`) — prototype moderation: any signed-in user can report a
+media item once (`report_media` RPC). API roles can *insert only* — no select
+grant, so reports are readable exclusively from the dashboard/service role.
+
 `geography` (not `geometry`) so `ST_DWithin`/`ST_Distance` work in meters on
 real-earth distances with index support.
 
