@@ -6,9 +6,10 @@ which mode they're in. Sessions persist in `localStorage` either way.
 
 | Provider | Status | What it takes to go live |
 | --- | --- | --- |
-| Google | **Live once you add a client id** (5 minutes, free) | Steps below |
-| Apple | Demo | Apple Developer Program ($99/yr), Services ID, domain verification — best added together with a backend |
-| Meta | Demo | Facebook developer app + app review — best added together with a backend |
+| Google | **Live** (client id configured; routes through Supabase Auth) | Steps below |
+| Guest | Demo mode (local simulation, nothing persisted) | — |
+| Apple | Planned — button removed from the UI until real | Apple Developer Program ($99/yr), Services ID, domain verification; enable as a Supabase Auth provider |
+| Meta | Planned — button removed from the UI until real | Facebook developer app + app review; enable as a Supabase Auth provider |
 
 ## Go live with Google
 

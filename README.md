@@ -25,7 +25,7 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | Universal search (events / people / interests) in the menu bar, with fly-to | ✅ |
 | Event cards → **Join meetup** → "My meetups" tab | ✅ |
 | Per-event interest chat with simulated participants | ✅ |
-| Social sign-in: **Google (real OAuth**, once a client id is configured — [docs/AUTH.md](docs/AUTH.md)**)**, Apple/Meta in labeled demo mode | ✅ |
+| Social sign-in: **Google (real OAuth** via Supabase — [docs/AUTH.md](docs/AUTH.md)**)** + a no-account demo mode; Apple/Meta planned | ✅ |
 | Session persistence (localStorage) + sign-out | ✅ |
 | **Data backbone**: PostGIS schema + RLS, nearby queries, realtime posts, presence — live once a Supabase project is connected ([docs/BACKEND.md](docs/BACKEND.md)) | ✅ code + migration |
 | **Pin your own event**: 📍 button → click the map → composer (activity, title, time) → shared live via Supabase for real sessions, local in demo | ✅ |
