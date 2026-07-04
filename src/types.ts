@@ -104,6 +104,25 @@ export interface Pin {
   createdAt: string
 }
 
+/** A real registered member, as found by profile search. */
+export interface ProfileHit {
+  id: string
+  displayName: string
+  avatarUrl?: string
+  interests: string[]
+}
+
+export type FriendState = 'friend' | 'incoming' | 'outgoing'
+
+export interface FriendEntry {
+  userId: string
+  displayName: string
+  avatarUrl?: string
+  interests: string[]
+  state: FriendState
+  since: string
+}
+
 /** A photo attached to an event pin. */
 export interface Vibe {
   id: string

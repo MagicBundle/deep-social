@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
-import type { World } from '../types'
+import type { FriendEntry, World } from '../types'
 import { INTEREST_BY_ID, interestFor } from '../data/mock'
 import { attendingCount, isLive, timeLabel } from '../sim/engine'
 import InterestChips from './InterestChips'
 
-export type PanelTab = 'events' | 'people' | 'mine'
+export type PanelTab = 'events' | 'people' | 'friends' | 'mine'
 
 /** Mobile bottom-sheet states (CSS ignores these on desktop):
  *  peek = handle + summary only (~80% of the map visible). */
@@ -22,6 +22,10 @@ interface Props {
   joined: Set<string>
   selectedEventId: string | null
   onSelectEvent: (id: string) => void
+  friends: FriendEntry[]
+  backendLive: boolean
+  onRespondFriend: (userId: string, accept: boolean) => void
+  onRemoveFriend: (userId: string) => void
 }
 
 export default function SidePanel({
@@ -33,6 +37,10 @@ export default function SidePanel({
   joined,
   selectedEventId,
   onSelectEvent,
+  friends,
+  backendLive,
+  onRespondFriend,
+  onRemoveFriend,
 }: Props) {
   const [sheet, setSheet] = useState<SheetState>('peek')
   const swipe = useRef<{ startY: number; lastY: number; moved: boolean } | null>(null)
@@ -81,6 +89,28 @@ export default function SidePanel({
 
   const mine = world.events.filter((e) => joined.has(e.id))
 
+  const incoming = friends.filter((f) => f.state === 'incoming')
+  const accepted = friends.filter((f) => f.state === 'friend')
+  const outgoing = friends.filter((f) => f.state === 'outgoing')
+  const friendBadge = incoming.length > 0 ? ` (${incoming.length}!)` : accepted.length > 0 ? ` (${accepted.length})` : ''
+
+  const friendRow = (f: FriendEntry, actions: React.ReactNode) => (
+    <div key={f.userId} className="person-row">
+      <span className="row-emoji person">
+        {f.avatarUrl ? <img className="row-avatar" src={f.avatarUrl} alt="" referrerPolicy="no-referrer" /> : '👤'}
+      </span>
+      <span className="row-text">
+        <strong>{f.displayName}</strong>
+        <small>
+          {f.interests.length
+            ? f.interests.map((i) => INTEREST_BY_ID[i]?.label ?? i).join(', ')
+            : 'Deep Social member'}
+        </small>
+      </span>
+      {actions}
+    </div>
+  )
+
   return (
     <aside className={`side-panel sheet-${sheet}`}>
       <div
@@ -109,8 +139,11 @@ export default function SidePanel({
         <button className={tab === 'people' ? 'active' : ''} onClick={() => onTab('people')}>
           People
         </button>
+        <button className={tab === 'friends' ? 'active' : ''} onClick={() => onTab('friends')}>
+          Friends{friendBadge}
+        </button>
         <button className={tab === 'mine' ? 'active' : ''} onClick={() => onTab('mine')}>
-          My meetups{joined.size > 0 ? ` (${joined.size})` : ''}
+          Mine{joined.size > 0 ? ` (${joined.size})` : ''}
         </button>
       </div>
 
@@ -157,6 +190,57 @@ export default function SidePanel({
                 ))}
               </span>
             </div>
+          ))}
+
+        {tab === 'friends' &&
+          (!backendLive ? (
+            <p className="empty-state">
+              Sign in with <strong>Google</strong> to find members and add friends.
+            </p>
+          ) : friends.length === 0 ? (
+            <p className="empty-state">
+              No friends yet. Search for people by name in the top bar and tap <strong>+ add</strong>.
+            </p>
+          ) : (
+            <>
+              {incoming.length > 0 && <div className="friend-section">Requests</div>}
+              {incoming.map((f) =>
+                friendRow(
+                  f,
+                  <span className="friend-actions">
+                    <button
+                      className="friend-accept"
+                      title="Accept"
+                      onClick={() => onRespondFriend(f.userId, true)}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      className="friend-decline"
+                      title="Decline"
+                      onClick={() => onRespondFriend(f.userId, false)}
+                    >
+                      ✕
+                    </button>
+                  </span>,
+                ),
+              )}
+              {accepted.length > 0 && <div className="friend-section">Friends</div>}
+              {accepted.map((f) =>
+                friendRow(
+                  f,
+                  <button
+                    className="friend-remove"
+                    title={`Remove ${f.displayName}`}
+                    onClick={() => onRemoveFriend(f.userId)}
+                  >
+                    ✕
+                  </button>,
+                ),
+              )}
+              {outgoing.length > 0 && <div className="friend-section">Sent</div>}
+              {outgoing.map((f) => friendRow(f, <span className="pending-tag">pending…</span>))}
+            </>
           ))}
 
         {tab === 'mine' &&

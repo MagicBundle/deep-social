@@ -13,6 +13,7 @@ interface Props {
   pinMode: boolean
   draftPin: { lat: number; lng: number } | null
   onPickLocation: (lat: number, lng: number) => void
+  mePosition: { lat: number; lng: number }
 }
 
 const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
@@ -46,12 +47,14 @@ export default function MapView({
   pinMode,
   draftPin,
   onPickLocation,
+  mePosition,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const memberMarkers = useRef(new Map<string, L.Marker>())
   const eventMarkers = useRef(new Map<string, L.Marker>())
   const draftMarker = useRef<L.Marker | null>(null)
+  const meMarker = useRef<L.Marker | null>(null)
   const onSelectRef = useRef(onSelectEvent)
   onSelectRef.current = onSelectEvent
   const pinModeRef = useRef(pinMode)
@@ -79,8 +82,8 @@ export default function MapView({
       if (pinModeRef.current) onPickRef.current(e.latlng.lat, e.latlng.lng)
     })
 
-    // "You" marker at the demo home position
-    L.marker([CITY_CENTER.lat, CITY_CENTER.lng], {
+    // "You" marker: starts at the demo home, follows geolocation when granted
+    meMarker.current = L.marker([CITY_CENTER.lat, CITY_CENTER.lng], {
       icon: L.divIcon({
         className: 'marker-wrap',
         html: '<div class="me-dot"><div class="me-pulse"></div></div>',
@@ -214,6 +217,10 @@ export default function MapView({
       el?.classList.toggle('dim', dimmed)
     }
   }, [world.members, filters])
+
+  useEffect(() => {
+    meMarker.current?.setLatLng([mePosition.lat, mePosition.lng])
+  }, [mePosition])
 
   // Fly to search results / selected events
   useEffect(() => {

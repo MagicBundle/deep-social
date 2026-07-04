@@ -202,6 +202,52 @@ begin
   raise notice 'PASS: report row persisted once (dupe ignored)';
 end $$;
 
+-- ── friendships (0005) ──────────────────────────────────────────────────
+set role authenticated;
+
+do $$
+declare s text; n int;
+begin
+  -- Bob requests Alice
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  s := public.request_friend('00000000-0000-0000-0000-00000000000a');
+  if s <> 'pending' then raise exception 'FAIL friends: request status % (want pending)', s; end if;
+  s := public.request_friend('00000000-0000-0000-0000-00000000000a'); -- idempotent
+  if s <> 'pending' then raise exception 'FAIL friends: duplicate request status %', s; end if;
+
+  -- Alice sees it incoming; requesting back auto-accepts
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  if (select mf.state from public.my_friendships() mf where mf.display_name = 'Bob') <> 'incoming'
+    then raise exception 'FAIL friends: Alice missing incoming request'; end if;
+  s := public.request_friend('00000000-0000-0000-0000-00000000000b');
+  if s <> 'accepted' then raise exception 'FAIL friends: counter-request gave % (want accepted)', s; end if;
+  if (select mf.state from public.my_friendships() mf where mf.display_name = 'Bob') <> 'friend'
+    then raise exception 'FAIL friends: not friends after mutual request'; end if;
+
+  -- Carol requests Alice; Alice declines; row gone for both
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+  perform public.request_friend('00000000-0000-0000-0000-00000000000a');
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  perform public.respond_friend('00000000-0000-0000-0000-00000000000c', false);
+  select count(*) into n from public.my_friendships() mf where mf.display_name = 'carol';
+  if n <> 0 then raise exception 'FAIL friends: declined request still visible'; end if;
+
+  -- Uninvolved user sees nothing (RLS)
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+  select count(*) into n from public.friendships;
+  if n <> 0 then raise exception 'FAIL friends: outsider can see % friendship rows', n; end if;
+
+  -- Removal works from either side
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  perform public.remove_friend('00000000-0000-0000-0000-00000000000a');
+  select count(*) into n from public.my_friendships();
+  if n <> 0 then raise exception 'FAIL friends: friendship survived removal'; end if;
+
+  raise notice 'PASS: friend request/auto-accept/decline/remove + RLS isolation';
+end $$;
+
+reset role;
+
 -- ── RLS + column grants (as the API role) ───────────────────────────────
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);

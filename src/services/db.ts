@@ -1,9 +1,12 @@
 import type {
   CreateEventPinInput,
+  FriendEntry,
+  FriendState,
   LocationSharing,
   MyProfile,
   NearbyProfile,
   Pin,
+  ProfileHit,
   Vibe,
 } from '../types'
 import { getSupabase } from './supabase'
@@ -141,6 +144,80 @@ export async function getNearbyPins(
     distanceM: r.distance_m as number,
     createdAt: r.created_at as string,
   }))
+}
+
+// ─── members & friends ───────────────────────────────────────────────────
+
+/** Search real registered members by display name (case-insensitive). */
+export async function searchProfiles(query: string): Promise<ProfileHit[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+  const supabase = getSupabase()
+  const [{ data, error }, { data: userData }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, interests')
+      .ilike('display_name', `%${q}%`)
+      .limit(8),
+    supabase.auth.getUser(),
+  ])
+  if (error) fail('searchProfiles', error.message)
+  const myId = userData.user?.id
+  return (data ?? [])
+    .filter((r) => r.id !== myId)
+    .map((r) => ({
+      id: r.id as string,
+      displayName: r.display_name as string,
+      avatarUrl: (r.avatar_url as string | null) ?? undefined,
+      interests: (r.interests as string[]) ?? [],
+    }))
+}
+
+/** Send a friend request; requesting someone who already requested you
+ *  accepts instead. Returns the resulting relationship status. */
+export async function requestFriend(userId: string): Promise<'pending' | 'accepted'> {
+  const { data, error } = await getSupabase().rpc('request_friend', { target: userId })
+  if (error) fail('requestFriend', error.message)
+  return data as 'pending' | 'accepted'
+}
+
+export async function respondFriend(requesterId: string, accept: boolean): Promise<void> {
+  const { error } = await getSupabase().rpc('respond_friend', {
+    requester: requesterId,
+    accept,
+  })
+  if (error) fail('respondFriend', error.message)
+}
+
+export async function removeFriend(userId: string): Promise<void> {
+  const { error } = await getSupabase().rpc('remove_friend', { target: userId })
+  if (error) fail('removeFriend', error.message)
+}
+
+export async function myFriendships(): Promise<FriendEntry[]> {
+  const { data, error } = await getSupabase().rpc('my_friendships')
+  if (error) fail('myFriendships', error.message)
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    userId: r.user_id as string,
+    displayName: r.display_name as string,
+    avatarUrl: (r.avatar_url as string | null) ?? undefined,
+    interests: (r.interests as string[]) ?? [],
+    state: r.state as FriendState,
+    since: r.since as string,
+  }))
+}
+
+/** Fires on any change to the caller's friendships (RLS-scoped). */
+export function subscribeToFriendships(onChange: () => void): () => void {
+  const channel = getSupabase()
+    .channel('friendships-feed')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () =>
+      onChange(),
+    )
+    .subscribe()
+  return () => {
+    void channel.unsubscribe()
+  }
 }
 
 // ─── attendance ──────────────────────────────────────────────────────────

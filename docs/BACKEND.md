@@ -57,6 +57,15 @@ public read.
 media item once (`report_media` RPC). API roles can *insert only* — no select
 grant, so reports are readable exclusively from the dashboard/service role.
 
+**friendships** (`0005_friends.sql`) — `(requester_id, addressee_id)` PK with
+`status pending|accepted`. RPCs: `request_friend` (requesting someone who
+already requested you auto-accepts), `respond_friend`, `remove_friend`,
+`my_friendships` (profile-joined list with friend/incoming/outgoing state).
+RLS scopes every row to its two participants — nobody else can see who is
+friends with whom. In the realtime publication (RLS-filtered) so the Friends
+tab updates live. Member search is a plain `ilike` on `profiles.display_name`
+(safe columns only).
+
 `geography` (not `geometry`) so `ST_DWithin`/`ST_Distance` work in meters on
 real-earth distances with index support.
 

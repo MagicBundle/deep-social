@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ChatMessage, MapFocus, Pin, Provider, Session, SocialEvent } from './types'
+import type {
+  ChatMessage,
+  FriendEntry,
+  MapFocus,
+  Pin,
+  ProfileHit,
+  Provider,
+  Session,
+  SocialEvent,
+} from './types'
 import {
   isBackendConfigured,
   loadSession,
@@ -9,7 +18,18 @@ import {
   signOutEverywhere,
 } from './auth'
 import { CHAT_REPLIES, CHAT_SEEDS, CITY_CENTER } from './data/mock'
-import { addVibe, createEventPin, getNearbyPins, joinMeetup, subscribeToPosts } from './services/db'
+import {
+  addVibe,
+  createEventPin,
+  getNearbyPins,
+  joinMeetup,
+  myFriendships,
+  removeFriend,
+  requestFriend,
+  respondFriend,
+  subscribeToFriendships,
+  subscribeToPosts,
+} from './services/db'
 import { attendingCount, isLive, remotePinId, useSimulation } from './sim/engine'
 import LoginScreen from './components/LoginScreen'
 import TopBar, { type SearchResult } from './components/TopBar'
@@ -74,6 +94,9 @@ export default function App() {
   const [pinMode, setPinMode] = useState(false)
   const [pinDraft, setPinDraft] = useState<{ lat: number; lng: number } | null>(null)
   const [vibeFor, setVibeFor] = useState<string | null>(null)
+  const [friends, setFriends] = useState<FriendEntry[]>([])
+  const [mePos, setMePos] = useState(CITY_CENTER)
+  const didLocate = useRef(false)
 
   const displayWorld = {
     members: world.members,
@@ -128,8 +151,9 @@ export default function App() {
     if (!backendLive) return
     let cancelled = false
     const refresh = () => {
-      // 60 km radius: covers the whole country from Luxembourg City
-      getNearbyPins(CITY_CENTER.lat, CITY_CENTER.lng, 60_000)
+      // 60 km radius around wherever the visitor actually is (Luxembourg
+      // City until geolocation resolves)
+      getNearbyPins(mePos.lat, mePos.lng, 60_000)
         .then((pins) => {
           if (cancelled) return
           setUserPins((prev) => {
@@ -156,7 +180,68 @@ export default function App() {
       unsubscribe()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backendLive, mePos])
+
+  // Center the experience on the visitor (with their permission). Falls
+  // back silently to the Luxembourg default when denied or unavailable.
+  useEffect(() => {
+    if (!session || didLocate.current || !('geolocation' in navigator)) return
+    didLocate.current = true
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const here = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        setMePos(here)
+        flyTo(here.lat, here.lng, 13)
+        toast('Centered on your location 📍')
+      },
+      () => {},
+      { timeout: 8000, maximumAge: 300_000 },
+    )
+  }, [session])
+
+  // Friends: load + live refresh (RLS scopes events to the caller's rows)
+  const refreshFriends = () => {
+    myFriendships()
+      .then(setFriends)
+      .catch((e) => console.warn('[friends] fetch failed:', e))
+  }
+  useEffect(() => {
+    if (!backendLive) return
+    refreshFriends()
+    return subscribeToFriendships(refreshFriends)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backendLive])
+
+  const handleAddFriend = async (profile: ProfileHit) => {
+    try {
+      const status = await requestFriend(profile.id)
+      toast(
+        status === 'accepted'
+          ? `You and ${profile.displayName} are now friends 🎉`
+          : `Friend request sent to ${profile.displayName}`,
+      )
+      setTab('friends')
+      refreshFriends()
+    } catch (e) {
+      console.warn('[friends] request failed:', e)
+      toast('Could not send the request — is migration 0005 applied?')
+    }
+  }
+
+  const handleRespondFriend = (userId: string, accept: boolean) => {
+    respondFriend(userId, accept)
+      .then(() => {
+        if (accept) toast('Friend request accepted 🎉')
+        refreshFriends()
+      })
+      .catch(() => toast('Could not update the request, try again'))
+  }
+
+  const handleRemoveFriend = (userId: string) => {
+    removeFriend(userId)
+      .then(refreshFriends)
+      .catch(() => toast('Could not remove, try again'))
+  }
 
   // Esc exits pin-drop mode / closes the composer
   useEffect(() => {
@@ -410,13 +495,16 @@ export default function App() {
         pinMode={pinMode}
         draftPin={pinDraft}
         onPickLocation={handlePickLocation}
+        mePosition={mePos}
       />
 
       <TopBar
         session={session}
         world={displayWorld}
         liveCount={liveCount}
+        backendLive={backendLive}
         onPick={handleSearchPick}
+        onAddFriend={handleAddFriend}
         onSignOut={handleSignOut}
       />
 
@@ -435,6 +523,10 @@ export default function App() {
         joined={joined}
         selectedEventId={selectedEventId}
         onSelectEvent={selectEvent}
+        friends={friends}
+        backendLive={backendLive}
+        onRespondFriend={handleRespondFriend}
+        onRemoveFriend={handleRemoveFriend}
       />
 
       <button
@@ -510,3 +602,4 @@ export default function App() {
     </div>
   )
 }
+

@@ -33,6 +33,8 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | **Real attendance**: join/leave persists to the DB with live counts on every map | ✅ |
 | **Vibe Checks 📸**: attendees attach photos to pins (EXIF-stripped, compressed client-side); camera badge on the map, carousel + report button in the card | ✅ |
 | **Mobile bottom-sheet UI**: draggable peek/half/full events sheet (~90% map visible collapsed), horizontal glass filter bar, iOS safe-area aware | ✅ |
+| **Visitor geolocation**: map centers on you (with permission), Luxembourg fallback | ✅ |
+| **Member search + friends**: top-bar search finds real registered members; requests / auto-accept / decline / remove in a live-updating Friends tab | ✅ |
 
 ## Architecture
 

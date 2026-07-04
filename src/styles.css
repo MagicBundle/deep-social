@@ -375,6 +375,35 @@ input {
   border-radius: 99px;
 }
 
+.sr-kind.add {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.45);
+}
+
+.sr-section {
+  padding: 6px 12px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sr-avatar {
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.sr-avatar img,
+.row-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
 .topbar-right {
   margin-left: auto;
   display: flex;
@@ -609,6 +638,61 @@ input {
   font-size: 13px;
   padding: 18px 14px;
   line-height: 1.5;
+}
+
+.friend-section {
+  padding: 8px 8px 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.friend-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.friend-accept,
+.friend-decline,
+.friend-remove {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friend-accept {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.45);
+}
+
+.friend-accept:hover {
+  background: rgba(74, 222, 128, 0.15);
+}
+
+.friend-decline,
+.friend-remove {
+  color: var(--muted);
+}
+
+.friend-decline:hover,
+.friend-remove:hover {
+  color: #fda4af;
+  border-color: rgba(244, 63, 94, 0.4);
+  background: rgba(244, 63, 94, 0.1);
+}
+
+.pending-tag {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 /* ---------- Event card ---------- */

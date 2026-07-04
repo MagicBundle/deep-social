@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from 'react'
-import type { Session, World } from '../types'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ProfileHit, Session, World } from '../types'
 import { INTERESTS, INTEREST_BY_ID, interestFor } from '../data/mock'
-import { isLive, timeLabel } from '../sim/engine'
+import { timeLabel } from '../sim/engine'
+import { searchProfiles } from '../services/db'
 
 export interface SearchResult {
   kind: 'event' | 'member' | 'interest'
@@ -16,7 +17,9 @@ interface Props {
   session: Session
   world: World
   liveCount: number
+  backendLive: boolean
   onPick: (r: SearchResult) => void
+  onAddFriend: (profile: ProfileHit) => void
   onSignOut: () => void
 }
 
@@ -27,10 +30,34 @@ const PROVIDER_BADGE: Record<string, string> = {
   guest: '👤 Guest',
 }
 
-export default function TopBar({ session, world, liveCount, onPick, onSignOut }: Props) {
+export default function TopBar({
+  session,
+  world,
+  liveCount,
+  backendLive,
+  onPick,
+  onAddFriend,
+  onSignOut,
+}: Props) {
   const [query, setQuery] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Real registered members, searched in the database (the local results
+  // below only cover the simulated demo world).
+  const [members, setMembers] = useState<ProfileHit[]>([])
+  useEffect(() => {
+    if (!backendLive || query.trim().length < 2) {
+      setMembers([])
+      return
+    }
+    const t = setTimeout(() => {
+      searchProfiles(query)
+        .then(setMembers)
+        .catch((e) => console.warn('[search] profile search failed:', e))
+    }, 300)
+    return () => clearTimeout(t)
+  }, [query, backendLive])
 
   const results = useMemo<SearchResult[]>(() => {
     const q = query.trim().toLowerCase()
@@ -97,8 +124,36 @@ export default function TopBar({ session, world, liveCount, onPick, onSignOut }:
             if (e.key === 'Escape') setQuery('')
           }}
         />
-        {results.length > 0 && (
+        {(results.length > 0 || members.length > 0) && (
           <div className="search-results">
+            {members.length > 0 && <div className="sr-section">Members</div>}
+            {members.map((m) => (
+              <button
+                key={`profile-${m.id}`}
+                className="search-result"
+                onClick={() => {
+                  onAddFriend(m)
+                  setQuery('')
+                  inputRef.current?.blur()
+                }}
+              >
+                <span className="sr-emoji sr-avatar">
+                  {m.avatarUrl ? <img src={m.avatarUrl} alt="" referrerPolicy="no-referrer" /> : '👤'}
+                </span>
+                <span className="sr-text">
+                  <strong>{m.displayName}</strong>
+                  <small>
+                    {m.interests.length
+                      ? m.interests.map((i) => INTEREST_BY_ID[i]?.label ?? i).join(', ')
+                      : 'Deep Social member'}
+                  </small>
+                </span>
+                <span className="sr-kind add">+ add</span>
+              </button>
+            ))}
+            {results.length > 0 && members.length > 0 && (
+              <div className="sr-section">On the map</div>
+            )}
             {results.map((r) => (
               <button key={`${r.kind}-${r.id}`} className="search-result" onClick={() => pick(r)}>
                 <span className="sr-emoji" style={{ background: `${r.color}22`, borderColor: r.color }}>
