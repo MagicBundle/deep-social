@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FriendEntry, World } from '../types'
 import { INTEREST_BY_ID, interestFor } from '../data/mock'
 import { attendingCount, isLive, timeLabel } from '../sim/engine'
@@ -26,6 +26,8 @@ interface Props {
   backendLive: boolean
   onRespondFriend: (userId: string, accept: boolean) => void
   onRemoveFriend: (userId: string) => void
+  /** bump to force the mobile sheet open (e.g. profile-menu navigation) */
+  openSignal: number
 }
 
 export default function SidePanel({
@@ -41,8 +43,13 @@ export default function SidePanel({
   backendLive,
   onRespondFriend,
   onRemoveFriend,
+  openSignal,
 }: Props) {
   const [sheet, setSheet] = useState<SheetState>('peek')
+
+  useEffect(() => {
+    if (openSignal > 0) setSheet('half')
+  }, [openSignal])
   const swipe = useRef<{ startY: number; lastY: number; moved: boolean } | null>(null)
 
   const onHandleTouchStart = (e: React.TouchEvent) => {
@@ -97,7 +104,12 @@ export default function SidePanel({
   const friendRow = (f: FriendEntry, actions: React.ReactNode) => (
     <div key={f.userId} className="person-row">
       <span className="row-emoji person">
-        {f.avatarUrl ? <img className="row-avatar" src={f.avatarUrl} alt="" referrerPolicy="no-referrer" /> : '👤'}
+        {f.avatarEmoji ??
+          (f.avatarUrl ? (
+            <img className="row-avatar" src={f.avatarUrl} alt="" referrerPolicy="no-referrer" />
+          ) : (
+            '👤'
+          ))}
       </span>
       <span className="row-text">
         <strong>{f.displayName}</strong>

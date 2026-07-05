@@ -156,7 +156,7 @@ export async function searchProfiles(query: string): Promise<ProfileHit[]> {
   const [{ data, error }, { data: userData }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, display_name, avatar_url, interests')
+      .select('id, display_name, avatar_url, avatar_emoji, interests')
       .ilike('display_name', `%${q}%`)
       .limit(8),
     supabase.auth.getUser(),
@@ -169,8 +169,31 @@ export async function searchProfiles(query: string): Promise<ProfileHit[]> {
       id: r.id as string,
       displayName: r.display_name as string,
       avatarUrl: (r.avatar_url as string | null) ?? undefined,
+      avatarEmoji: (r.avatar_emoji as string | null) ?? undefined,
       interests: (r.interests as string[]) ?? [],
     }))
+}
+
+/** Set (or clear with null) the caller's emoji avatar. */
+export async function setMyAvatarEmoji(emoji: string | null): Promise<void> {
+  const supabase = getSupabase()
+  const uid = (await supabase.auth.getUser()).data.user?.id
+  if (!uid) fail('setMyAvatarEmoji', 'not authenticated')
+  const { error } = await supabase.from('profiles').update({ avatar_emoji: emoji }).eq('id', uid)
+  if (error) fail('setMyAvatarEmoji', error.message)
+}
+
+export async function getMyAvatarEmoji(): Promise<string | null> {
+  const supabase = getSupabase()
+  const uid = (await supabase.auth.getUser()).data.user?.id
+  if (!uid) return null
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('avatar_emoji')
+    .eq('id', uid)
+    .maybeSingle()
+  if (error) fail('getMyAvatarEmoji', error.message)
+  return (data?.avatar_emoji as string | null) ?? null
 }
 
 /** Send a friend request; requesting someone who already requested you
@@ -201,6 +224,7 @@ export async function myFriendships(): Promise<FriendEntry[]> {
     userId: r.user_id as string,
     displayName: r.display_name as string,
     avatarUrl: (r.avatar_url as string | null) ?? undefined,
+    avatarEmoji: (r.avatar_emoji as string | null) ?? undefined,
     interests: (r.interests as string[]) ?? [],
     state: r.state as FriendState,
     since: r.since as string,

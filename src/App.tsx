@@ -21,16 +21,18 @@ import { CHAT_REPLIES, CHAT_SEEDS, CITY_CENTER } from './data/mock'
 import {
   addVibe,
   createEventPin,
+  getMyAvatarEmoji,
   getNearbyPins,
   joinMeetup,
   myFriendships,
   removeFriend,
   requestFriend,
   respondFriend,
+  setMyAvatarEmoji,
   subscribeToFriendships,
   subscribeToPosts,
 } from './services/db'
-import { attendingCount, isLive, remotePinId, useSimulation } from './sim/engine'
+import { attendingCount, isLive, remotePinId, timeLabel, useSimulation } from './sim/engine'
 import LoginScreen from './components/LoginScreen'
 import TopBar, { type SearchResult } from './components/TopBar'
 import SidePanel, { type PanelTab } from './components/SidePanel'
@@ -97,6 +99,7 @@ export default function App() {
   const [friends, setFriends] = useState<FriendEntry[]>([])
   const [mePos, setMePos] = useState(CITY_CENTER)
   const didLocate = useRef(false)
+  const [sheetSignal, setSheetSignal] = useState(0)
 
   const displayWorld = {
     members: world.members,
@@ -137,13 +140,39 @@ export default function App() {
   // session. onBackendAuthChange also clears state on remote sign-out.
   useEffect(() => {
     if (!isBackendConfigured()) return
+    // After adopting a backend session, pull the user's saved emoji avatar.
+    const adopt = (s: Session | null) => {
+      setSession(s)
+      if (!s) return
+      getMyAvatarEmoji()
+        .then((emoji) => {
+          if (emoji) setSession((cur) => (cur ? { ...cur, avatarEmoji: emoji, avatar: emoji } : cur))
+        })
+        .catch(() => {})
+    }
     restoreBackendSession()
       .then((s) => {
-        if (s) setSession(s)
+        if (s) adopt(s)
       })
       .catch((e) => console.warn('[auth] session restore failed:', e))
-    return onBackendAuthChange((s) => setSession(s))
+    return onBackendAuthChange(adopt)
   }, [])
+
+  const handlePickAvatar = (emoji: string | null) => {
+    setSession((cur) =>
+      cur ? { ...cur, avatarEmoji: emoji ?? undefined, avatar: emoji ?? cur.avatar } : cur,
+    )
+    if (session) {
+      saveSession({ ...session, avatarEmoji: emoji ?? undefined, avatar: emoji ?? session.avatar })
+    }
+    toast(emoji ? `Avatar updated ${emoji}` : 'Back to your profile photo')
+    if (backendLive) {
+      setMyAvatarEmoji(emoji).catch((e) => {
+        console.warn('[avatar] save failed:', e)
+        toast('Could not save the avatar — is migration 0006 applied?')
+      })
+    }
+  }
 
   // Shared pins: initial load around the demo city + realtime invalidation.
   // Requires a real session — the RPCs are authenticated-only by design.
@@ -281,7 +310,11 @@ export default function App() {
         toast('Pinned to the live map 🌍 — everyone nearby can see it')
       } catch (e) {
         console.warn('[pins] backend create failed:', e)
-        toast('Could not sync the pin — kept locally (is migration 0002 applied?)')
+        if (String((e as Error).message).includes('daily pin limit')) {
+          toast("You've hit today's 3-pin limit — the pin stays on your map only 🌙")
+        } else {
+          toast('Could not sync the pin — kept locally')
+        }
       }
     } else {
       toast('Pinned! Local only in demo mode — Google sign-in publishes for real')
@@ -484,6 +517,22 @@ export default function App() {
   const vibeEvent = displayWorld.events.find((e) => e.id === vibeFor) ?? null
   const liveCount = displayWorld.events.filter(isLive).length
 
+  const joinedEvents = displayWorld.events.filter((e) => joined.has(e.id))
+  const nextEvent = joinedEvents
+    .filter((e) => e.startsInMin > 0)
+    .sort((a, b) => a.startsInMin - b.startsInMin)[0]
+  const liveJoined = joinedEvents.find((e) => isLive(e))
+  const menuStats = {
+    friendCount: friends.filter((f) => f.state === 'friend').length,
+    requestCount: friends.filter((f) => f.state === 'incoming').length,
+    meetupCount: joined.size,
+    nextEventLabel: liveJoined
+      ? `${liveJoined.title} · LIVE`
+      : nextEvent
+        ? `${nextEvent.title} ${timeLabel(nextEvent)}`
+        : null,
+  }
+
   return (
     <div className={`app${chatEvent ? ' chat-open' : ''}`}>
       <MapView
@@ -503,8 +552,14 @@ export default function App() {
         world={displayWorld}
         liveCount={liveCount}
         backendLive={backendLive}
+        stats={menuStats}
         onPick={handleSearchPick}
         onAddFriend={handleAddFriend}
+        onNavigateTab={(t) => {
+          setTab(t)
+          setSheetSignal((n) => n + 1)
+        }}
+        onPickAvatar={handlePickAvatar}
         onSignOut={handleSignOut}
       />
 
@@ -527,6 +582,7 @@ export default function App() {
         backendLive={backendLive}
         onRespondFriend={handleRespondFriend}
         onRemoveFriend={handleRemoveFriend}
+        openSignal={sheetSignal}
       />
 
       <button

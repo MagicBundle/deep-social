@@ -2,7 +2,7 @@
 
 [![CI & Deploy](https://github.com/MagicBundle/deep-social/actions/workflows/deploy.yml/badge.svg)](https://github.com/MagicBundle/deep-social/actions/workflows/deploy.yml)
 
-**🌍 Live demo: <https://magicbundle.github.io/deep-social/>**
+**🌍 Live demo: <https://magicbundle.github.io/deep-social/>** · Beta — see the [privacy notice](PRIVACY.md)
 
 **Your city's social layer, live.** A map-forward social network: the map *is* the home screen. People and events appear as live pins, filtered by shared interests, with one tap from "I see you" to chat to an actual meetup.
 

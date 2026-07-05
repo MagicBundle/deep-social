@@ -71,6 +71,7 @@ export default function LoginScreen({ onLogin }: Props) {
           <h1>
             Deep<span>Social</span>
           </h1>
+          <span className="beta-tag">BETA</span>
         </div>
         <p className="login-tagline">Your city's social layer, live.</p>
 
@@ -90,6 +91,16 @@ export default function LoginScreen({ onLogin }: Props) {
         </div>
 
         <p className={`login-status${error ? ' error' : ''}`}>{statusText}</p>
+        <p className="login-legal">
+          Beta software — things may break and data may be reset.{' '}
+          <a
+            href="https://github.com/MagicBundle/deep-social/blob/main/PRIVACY.md"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Privacy notice
+          </a>
+        </p>
       </div>
     </div>
   )

@@ -216,6 +216,9 @@ const MEMBER_SEED: Array<[string, string, string[]]> = [
   ['Omar', '🦚', ['photo', 'tech']],
 ]
 
+/** The avatar repertoire real users pick from (same set the sim uses). */
+export const AVATAR_EMOJIS = Array.from(new Set(MEMBER_SEED.map(([, avatar]) => avatar)))
+
 export const MEMBERS: Member[] = MEMBER_SEED.map(([name, avatar, interests], i) => ({
   id: `m${i}`,
   name,

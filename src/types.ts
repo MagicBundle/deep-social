@@ -58,6 +58,8 @@ export interface Session {
   avatar: string
   email?: string
   picture?: string
+  /** user-picked emoji avatar; takes precedence over the provider photo */
+  avatarEmoji?: string
   /** true when the session came from real OAuth rather than the demo mock */
   real?: boolean
 }
@@ -109,6 +111,7 @@ export interface ProfileHit {
   id: string
   displayName: string
   avatarUrl?: string
+  avatarEmoji?: string
   interests: string[]
 }
 
@@ -118,6 +121,7 @@ export interface FriendEntry {
   userId: string
   displayName: string
   avatarUrl?: string
+  avatarEmoji?: string
   interests: string[]
   state: FriendState
   since: string

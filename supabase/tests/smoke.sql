@@ -246,6 +246,30 @@ begin
   raise notice 'PASS: friend request/auto-accept/decline/remove + RLS isolation';
 end $$;
 
+-- ── pin rate limit + avatar emoji (0006) ────────────────────────────────
+do $$
+declare i int; ok boolean := false;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+  for i in 1..3 loop
+    perform public.create_event_pin('carol pin ' || i, 'yoga', 49.61 + i * 0.001, 6.13);
+  end loop;
+  begin
+    perform public.create_event_pin('carol pin 4', 'yoga', 49.62, 6.13);
+  exception when others then
+    if sqlerrm like '%daily pin limit%' then ok := true; end if;
+  end;
+  if not ok then raise exception 'FAIL limits: 4th pin in 24h was accepted'; end if;
+
+  -- avatar emoji: settable on own row, visible through my_friendships
+  update public.profiles set avatar_emoji = '🦊' where id = auth.uid();
+  perform public.request_friend('00000000-0000-0000-0000-00000000000d');
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+  if (select mf.avatar_emoji from public.my_friendships() mf where mf.state = 'incoming' limit 1) <> '🦊'
+    then raise exception 'FAIL avatars: emoji not visible in my_friendships'; end if;
+  raise notice 'PASS: 3-per-day pin limit enforced, avatar emoji flows to friends';
+end $$;
+
 reset role;
 
 -- ── RLS + column grants (as the API role) ───────────────────────────────

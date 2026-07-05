@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ProfileHit, Session, World } from '../types'
-import { INTERESTS, INTEREST_BY_ID, interestFor } from '../data/mock'
+import type { PanelTab } from './SidePanel'
+import { AVATAR_EMOJIS, INTERESTS, INTEREST_BY_ID, interestFor } from '../data/mock'
 import { timeLabel } from '../sim/engine'
 import { searchProfiles } from '../services/db'
+
+export interface MenuStats {
+  friendCount: number
+  requestCount: number
+  meetupCount: number
+  nextEventLabel: string | null
+}
 
 export interface SearchResult {
   kind: 'event' | 'member' | 'interest'
@@ -18,8 +26,11 @@ interface Props {
   world: World
   liveCount: number
   backendLive: boolean
+  stats: MenuStats
   onPick: (r: SearchResult) => void
   onAddFriend: (profile: ProfileHit) => void
+  onNavigateTab: (tab: PanelTab) => void
+  onPickAvatar: (emoji: string | null) => void
   onSignOut: () => void
 }
 
@@ -35,13 +46,23 @@ export default function TopBar({
   world,
   liveCount,
   backendLive,
+  stats,
   onPick,
   onAddFriend,
+  onNavigateTab,
+  onPickAvatar,
   onSignOut,
 }: Props) {
   const [query, setQuery] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const goTab = (tab: PanelTab) => {
+    setMenuOpen(false)
+    setAvatarPickerOpen(false)
+    onNavigateTab(tab)
+  }
 
   // Real registered members, searched in the database (the local results
   // below only cover the simulated demo world).
@@ -138,7 +159,8 @@ export default function TopBar({
                 }}
               >
                 <span className="sr-emoji sr-avatar">
-                  {m.avatarUrl ? <img src={m.avatarUrl} alt="" referrerPolicy="no-referrer" /> : '👤'}
+                  {m.avatarEmoji ??
+                    (m.avatarUrl ? <img src={m.avatarUrl} alt="" referrerPolicy="no-referrer" /> : '👤')}
                 </span>
                 <span className="sr-text">
                   <strong>{m.displayName}</strong>
@@ -177,7 +199,13 @@ export default function TopBar({
         </div>
         <div className="avatar-menu">
           <button className="avatar-btn" onClick={() => setMenuOpen((o) => !o)}>
-            {session.picture ? <img src={session.picture} alt={session.name} referrerPolicy="no-referrer" /> : session.avatar}
+            {session.avatarEmoji ? (
+              session.avatarEmoji
+            ) : session.picture ? (
+              <img src={session.picture} alt={session.name} referrerPolicy="no-referrer" />
+            ) : (
+              session.avatar
+            )}
           </button>
           {menuOpen && (
             <div className="avatar-dropdown">
@@ -186,6 +214,49 @@ export default function TopBar({
                 {session.email && <small>{session.email}</small>}
                 <small>via {PROVIDER_BADGE[session.provider]}{session.real ? '' : ' (demo)'}</small>
               </div>
+
+              <button className="menu-row" onClick={() => goTab('friends')}>
+                <span>👥 Friends</span>
+                <small>
+                  {stats.friendCount}
+                  {stats.requestCount > 0 && (
+                    <em className="menu-alert"> · {stats.requestCount} request{stats.requestCount > 1 ? 's' : ''}!</em>
+                  )}
+                </small>
+              </button>
+
+              <button className="menu-row" onClick={() => goTab('mine')}>
+                <span>📅 My meetups</span>
+                <small>
+                  {stats.meetupCount}
+                  {stats.nextEventLabel ? ` · next: ${stats.nextEventLabel}` : ''}
+                </small>
+              </button>
+
+              <button className="menu-row" onClick={() => setAvatarPickerOpen((o) => !o)}>
+                <span>🎭 Avatar</span>
+                <small>{session.avatarEmoji ?? (session.picture ? 'your photo' : session.avatar)} · change</small>
+              </button>
+
+              {avatarPickerOpen && (
+                <div className="avatar-grid">
+                  {AVATAR_EMOJIS.map((e) => (
+                    <button
+                      key={e}
+                      className={session.avatarEmoji === e ? 'active' : ''}
+                      onClick={() => onPickAvatar(e)}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                  {session.picture && session.avatarEmoji && (
+                    <button className="avatar-reset" onClick={() => onPickAvatar(null)}>
+                      Use my photo instead
+                    </button>
+                  )}
+                </div>
+              )}
+
               <button onClick={onSignOut}>Sign out</button>
             </div>
           )}
