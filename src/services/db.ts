@@ -235,7 +235,7 @@ export async function myFriendships(): Promise<FriendEntry[]> {
 /** Fires on any change to the caller's friendships (RLS-scoped). */
 export function subscribeToFriendships(onChange: () => void): () => void {
   const channel = getSupabase()
-    .channel('friendships-feed')
+    .channel(`friendships-feed-${crypto.randomUUID()}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () =>
       onChange(),
     )
@@ -284,7 +284,7 @@ export async function dmUnreadCounts(): Promise<Record<string, number>> {
 /** Fires on any DM the caller sends or receives (RLS-scoped). */
 export function subscribeToDirectMessages(onChange: () => void): () => void {
   const channel = getSupabase()
-    .channel('dm-feed')
+    .channel(`dm-feed-${crypto.randomUUID()}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, () =>
       onChange(),
     )
@@ -392,7 +392,7 @@ export async function createEventPin(input: CreateEventPinInput): Promise<string
  *  re-run getNearbyPins for their viewport. Returns an unsubscribe fn. */
 export function subscribeToPosts(onChange: () => void): () => void {
   const channel = getSupabase()
-    .channel('posts-feed')
+    .channel(`posts-feed-${crypto.randomUUID()}`)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, () => onChange())
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'posts' }, () => onChange())
     .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'posts' }, () => onChange())
