@@ -115,6 +115,15 @@ export interface ProfileHit {
   interests: string[]
 }
 
+/** A direct message between two friends. */
+export interface DirectMessage {
+  id: string
+  senderId: string
+  body: string
+  createdAt: string
+  mine: boolean
+}
+
 export type FriendState = 'friend' | 'incoming' | 'outgoing'
 
 export interface FriendEntry {

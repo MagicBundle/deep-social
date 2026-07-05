@@ -1,5 +1,6 @@
 import type {
   CreateEventPinInput,
+  DirectMessage,
   FriendEntry,
   FriendState,
   LocationSharing,
@@ -236,6 +237,55 @@ export function subscribeToFriendships(onChange: () => void): () => void {
   const channel = getSupabase()
     .channel('friendships-feed')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () =>
+      onChange(),
+    )
+    .subscribe()
+  return () => {
+    void channel.unsubscribe()
+  }
+}
+
+// ─── direct messages (friends only) ──────────────────────────────────────
+
+export async function getConversation(friendId: string): Promise<DirectMessage[]> {
+  const { data, error } = await getSupabase().rpc('conversation', { friend: friendId })
+  if (error) fail('getConversation', error.message)
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    senderId: r.sender_id as string,
+    body: r.body as string,
+    createdAt: r.created_at as string,
+    mine: Boolean(r.mine),
+  }))
+}
+
+export async function sendDm(friendId: string, body: string): Promise<string> {
+  const text = body.trim()
+  if (!text) fail('sendDm', 'empty message')
+  const { data, error } = await getSupabase().rpc('send_dm', { recipient: friendId, body: text })
+  if (error) fail('sendDm', error.message)
+  return data as string
+}
+
+export async function markDmRead(friendId: string): Promise<void> {
+  const { error } = await getSupabase().rpc('mark_dm_read', { friend: friendId })
+  if (error) console.warn('[dm] mark read failed:', error.message)
+}
+
+/** Map of friendId → unread message count. */
+export async function dmUnreadCounts(): Promise<Record<string, number>> {
+  const { data, error } = await getSupabase().rpc('dm_unread_counts')
+  if (error) fail('dmUnreadCounts', error.message)
+  const out: Record<string, number> = {}
+  for (const r of data ?? []) out[r.friend_id as string] = r.unread as number
+  return out
+}
+
+/** Fires on any DM the caller sends or receives (RLS-scoped). */
+export function subscribeToDirectMessages(onChange: () => void): () => void {
+  const channel = getSupabase()
+    .channel('dm-feed')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, () =>
       onChange(),
     )
     .subscribe()

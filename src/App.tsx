@@ -21,6 +21,7 @@ import { CHAT_REPLIES, CHAT_SEEDS, CITY_CENTER } from './data/mock'
 import {
   addVibe,
   createEventPin,
+  dmUnreadCounts,
   getMyAvatarEmoji,
   getNearbyPins,
   joinMeetup,
@@ -29,6 +30,7 @@ import {
   requestFriend,
   respondFriend,
   setMyAvatarEmoji,
+  subscribeToDirectMessages,
   subscribeToFriendships,
   subscribeToPosts,
 } from './services/db'
@@ -42,6 +44,7 @@ import ChatDrawer from './components/ChatDrawer'
 import PinComposer, { type PinFormValues } from './components/PinComposer'
 import VibeComposer from './components/VibeComposer'
 import InterestChips from './components/InterestChips'
+import FriendChatDrawer from './components/FriendChatDrawer'
 
 interface Toast {
   id: number
@@ -97,6 +100,8 @@ export default function App() {
   const [pinDraft, setPinDraft] = useState<{ lat: number; lng: number } | null>(null)
   const [vibeFor, setVibeFor] = useState<string | null>(null)
   const [friends, setFriends] = useState<FriendEntry[]>([])
+  const [dmUnread, setDmUnread] = useState<Record<string, number>>({})
+  const [dmFriend, setDmFriend] = useState<FriendEntry | null>(null)
   const [mePos, setMePos] = useState(CITY_CENTER)
   const didLocate = useRef(false)
   const [sheetSignal, setSheetSignal] = useState(0)
@@ -240,6 +245,30 @@ export default function App() {
     return subscribeToFriendships(refreshFriends)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backendLive])
+
+  // Unread DM counts: load + live refresh so friend rows and the toast badge
+  // stay current even while the chat is closed.
+  const refreshUnread = () => {
+    dmUnreadCounts()
+      .then(setDmUnread)
+      .catch((e) => console.warn('[dm] unread fetch failed:', e))
+  }
+  useEffect(() => {
+    if (!backendLive) return
+    refreshUnread()
+    return subscribeToDirectMessages(refreshUnread)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backendLive])
+
+  const openFriendChat = (friend: FriendEntry) => {
+    setDmFriend(friend)
+    // optimistic: clear this friend's unread badge; markDmRead runs in drawer
+    setDmUnread((prev) => {
+      const next = { ...prev }
+      delete next[friend.userId]
+      return next
+    })
+  }
 
   const handleAddFriend = async (profile: ProfileHit) => {
     try {
@@ -522,9 +551,11 @@ export default function App() {
     .filter((e) => e.startsInMin > 0)
     .sort((a, b) => a.startsInMin - b.startsInMin)[0]
   const liveJoined = joinedEvents.find((e) => isLive(e))
+  const unreadDmTotal = Object.values(dmUnread).reduce((a, b) => a + b, 0)
   const menuStats = {
     friendCount: friends.filter((f) => f.state === 'friend').length,
     requestCount: friends.filter((f) => f.state === 'incoming').length,
+    unreadDms: unreadDmTotal,
     meetupCount: joined.size,
     nextEventLabel: liveJoined
       ? `${liveJoined.title} · LIVE`
@@ -534,7 +565,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app${chatEvent ? ' chat-open' : ''}`}>
+    <div className={`app${chatEvent || dmFriend ? ' chat-open' : ''}`}>
       <MapView
         world={displayWorld}
         filters={filters}
@@ -580,8 +611,10 @@ export default function App() {
         onSelectEvent={selectEvent}
         friends={friends}
         backendLive={backendLive}
+        dmUnread={dmUnread}
         onRespondFriend={handleRespondFriend}
         onRemoveFriend={handleRemoveFriend}
+        onOpenFriendChat={openFriendChat}
         openSignal={sheetSignal}
       />
 
@@ -647,6 +680,8 @@ export default function App() {
           onClose={() => setChatEventId(null)}
         />
       )}
+
+      {dmFriend && <FriendChatDrawer friend={dmFriend} onClose={() => setDmFriend(null)} />}
 
       <div className="toasts">
         {toasts.map((t) => (

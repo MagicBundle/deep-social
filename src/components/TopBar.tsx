@@ -8,6 +8,7 @@ import { searchProfiles } from '../services/db'
 export interface MenuStats {
   friendCount: number
   requestCount: number
+  unreadDms: number
   meetupCount: number
   nextEventLabel: string | null
 }
@@ -221,6 +222,9 @@ export default function TopBar({
                   {stats.friendCount}
                   {stats.requestCount > 0 && (
                     <em className="menu-alert"> · {stats.requestCount} request{stats.requestCount > 1 ? 's' : ''}!</em>
+                  )}
+                  {stats.unreadDms > 0 && (
+                    <em className="menu-alert"> · {stats.unreadDms} 💬</em>
                   )}
                 </small>
               </button>

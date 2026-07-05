@@ -66,6 +66,14 @@ friends with whom. In the realtime publication (RLS-filtered) so the Friends
 tab updates live. Member search is a plain `ilike` on `profiles.display_name`
 (safe columns only).
 
+**direct_messages** (`0007_direct_messages.sql`) — 1:1 chat between accepted
+friends. INSERT policy calls `are_friends()` (a `security definer` helper), so
+you can only message someone you're actually friends with — a modified client
+can't DM strangers. SELECT is scoped to the two participants. RPCs: `send_dm`,
+`conversation` (thread, oldest-first, with a `mine` flag), `mark_dm_read`,
+`dm_unread_counts` (per-friend badges). In the realtime publication so open
+chats and unread badges update live.
+
 `geography` (not `geometry`) so `ST_DWithin`/`ST_Distance` work in meters on
 real-earth distances with index support.
 

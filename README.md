@@ -35,6 +35,7 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | **Mobile bottom-sheet UI**: draggable peek/half/full events sheet (~90% map visible collapsed), horizontal glass filter bar, iOS safe-area aware | ✅ |
 | **Visitor geolocation**: map centers on you (with permission), Luxembourg fallback | ✅ |
 | **Member search + friends**: top-bar search finds real registered members; requests / auto-accept / decline / remove in a live-updating Friends tab | ✅ |
+| **Direct messages**: tap an accepted friend to open a 1:1 chat (friendship-gated in RLS), realtime delivery, unread badges | ✅ |
 
 ## Architecture
 

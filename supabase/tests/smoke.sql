@@ -270,6 +270,57 @@ begin
   raise notice 'PASS: 3-per-day pin limit enforced, avatar emoji flows to friends';
 end $$;
 
+-- ── direct messages (0007) ──────────────────────────────────────────────
+do $$
+declare mid uuid; n int; ok boolean := false; s text;
+begin
+  -- Establish an accepted friendship: Bob <-> Alice
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  perform public.request_friend('00000000-0000-0000-0000-00000000000a');
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  s := public.request_friend('00000000-0000-0000-0000-00000000000b');
+  if s <> 'accepted' then raise exception 'FAIL dm-setup: friendship not accepted (%)', s; end if;
+
+  -- Bob DMs Alice
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  mid := public.send_dm('00000000-0000-0000-0000-00000000000a', 'hey Alice, coffee?');
+  if mid is null then raise exception 'FAIL dm: send returned null'; end if;
+
+  -- Alice sees it, flagged not-mine, and appears unread for her
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  select count(*) into n from public.conversation('00000000-0000-0000-0000-00000000000b');
+  if n <> 1 then raise exception 'FAIL dm: Alice sees % messages (want 1)', n; end if;
+  if (select c.mine from public.conversation('00000000-0000-0000-0000-00000000000b') c limit 1)
+    then raise exception 'FAIL dm: incoming message flagged as mine'; end if;
+  if (select du.unread from public.dm_unread_counts() du
+       where du.friend_id = '00000000-0000-0000-0000-00000000000b') <> 1
+    then raise exception 'FAIL dm: unread count wrong'; end if;
+
+  -- Alice replies; both see the 2-message thread; mark read clears unread
+  perform public.send_dm('00000000-0000-0000-0000-00000000000b', 'yes! 4pm?');
+  perform public.mark_dm_read('00000000-0000-0000-0000-00000000000b');
+  if exists (select 1 from public.dm_unread_counts())
+    then raise exception 'FAIL dm: unread not cleared after mark_dm_read'; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  select count(*) into n from public.conversation('00000000-0000-0000-0000-00000000000a');
+  if n <> 2 then raise exception 'FAIL dm: Bob sees % messages (want 2)', n; end if;
+
+  -- Non-friend (Carol) cannot DM Bob
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+  begin
+    perform public.send_dm('00000000-0000-0000-0000-00000000000b', 'let me in');
+  exception when others then
+    if sqlerrm like '%accepted friends%' or sqlerrm like '%policy%' then ok := true; end if;
+  end;
+  if not ok then raise exception 'FAIL dm: non-friend was able to send a DM'; end if;
+
+  -- And cannot read someone else's thread (RLS)
+  select count(*) into n from public.conversation('00000000-0000-0000-0000-00000000000a');
+  if n <> 0 then raise exception 'FAIL dm: outsider read % messages from a thread', n; end if;
+
+  raise notice 'PASS: DM send/receive, unread + mark-read, friendship gate, RLS isolation';
+end $$;
+
 reset role;
 
 -- ── RLS + column grants (as the API role) ───────────────────────────────

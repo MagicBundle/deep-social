@@ -24,8 +24,10 @@ interface Props {
   onSelectEvent: (id: string) => void
   friends: FriendEntry[]
   backendLive: boolean
+  dmUnread: Record<string, number>
   onRespondFriend: (userId: string, accept: boolean) => void
   onRemoveFriend: (userId: string) => void
+  onOpenFriendChat: (friend: FriendEntry) => void
   /** bump to force the mobile sheet open (e.g. profile-menu navigation) */
   openSignal: number
 }
@@ -41,8 +43,10 @@ export default function SidePanel({
   onSelectEvent,
   friends,
   backendLive,
+  dmUnread,
   onRespondFriend,
   onRemoveFriend,
+  onOpenFriendChat,
   openSignal,
 }: Props) {
   const [sheet, setSheet] = useState<SheetState>('peek')
@@ -101,27 +105,36 @@ export default function SidePanel({
   const outgoing = friends.filter((f) => f.state === 'outgoing')
   const friendBadge = incoming.length > 0 ? ` (${incoming.length}!)` : accepted.length > 0 ? ` (${accepted.length})` : ''
 
-  const friendRow = (f: FriendEntry, actions: React.ReactNode) => (
-    <div key={f.userId} className="person-row">
-      <span className="row-emoji person">
-        {f.avatarEmoji ??
-          (f.avatarUrl ? (
-            <img className="row-avatar" src={f.avatarUrl} alt="" referrerPolicy="no-referrer" />
-          ) : (
-            '👤'
-          ))}
-      </span>
-      <span className="row-text">
-        <strong>{f.displayName}</strong>
-        <small>
-          {f.interests.length
-            ? f.interests.map((i) => INTEREST_BY_ID[i]?.label ?? i).join(', ')
-            : 'Deep Social member'}
-        </small>
-      </span>
-      {actions}
-    </div>
-  )
+  const friendRow = (f: FriendEntry, actions: React.ReactNode, onClick?: () => void) => {
+    const unread = dmUnread[f.userId] ?? 0
+    const avatar = f.avatarEmoji ?? (f.avatarUrl ? (
+      <img className="row-avatar" src={f.avatarUrl} alt="" referrerPolicy="no-referrer" />
+    ) : (
+      '👤'
+    ))
+    return (
+      <div
+        key={f.userId}
+        className={`person-row${onClick ? ' clickable' : ''}`}
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+      >
+        <span className="row-emoji person">
+          {avatar}
+          {unread > 0 && <span className="unread-dot">{unread}</span>}
+        </span>
+        <span className="row-text">
+          <strong>{f.displayName}</strong>
+          <small>
+            {onClick ? (unread > 0 ? `${unread} new message${unread > 1 ? 's' : ''}` : 'Tap to chat 💬') : f.interests.length
+              ? f.interests.map((i) => INTEREST_BY_ID[i]?.label ?? i).join(', ')
+              : 'Deep Social member'}
+          </small>
+        </span>
+        {actions}
+      </div>
+    )
+  }
 
   return (
     <aside className={`side-panel sheet-${sheet}`}>
@@ -244,10 +257,14 @@ export default function SidePanel({
                   <button
                     className="friend-remove"
                     title={`Remove ${f.displayName}`}
-                    onClick={() => onRemoveFriend(f.userId)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onRemoveFriend(f.userId)
+                    }}
                   >
                     ✕
                   </button>,
+                  () => onOpenFriendChat(f),
                 ),
               )}
               {outgoing.length > 0 && <div className="friend-section">Sent</div>}
