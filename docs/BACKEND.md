@@ -24,9 +24,14 @@ workaround.
 ## Schema (see [supabase/migrations/0001_init.sql](../supabase/migrations/0001_init.sql))
 
 **profiles** — `id (uuid, = auth.users.id)`, `email`, `display_name`,
-`avatar_url`, `interests text[]`, `location_sharing ('precise'|'fuzzed'|'off',
-default 'off')`, `last_location geography(point,4326)`,
+`avatar_url`, `avatar_emoji`, `interests text[]`, `visibility_mode
+('ghost'|'observer'|'beacon', default 'ghost' — since 0008; replaced the old
+location_sharing tier)`, `last_location geography(point,4326)`,
 `location_updated_at`, timestamps. GiST index on `last_location`.
+`nearby_profiles` applies visibility: ghost hidden from strangers, observer
+returns an anonymous dot (interests + ~500 m-fuzzed location, no name/photo),
+beacon returns the full profile — and accepted friends always bypass the mode
+(`are_friends`) to see the full profile + precise location.
 
 **posts** (event pins, since `0002_event_pins.sql`) — `id`, `user_id → profiles`,
 `title (≤80)`, `category`, `starts_at`, `duration_min`, optional `content`

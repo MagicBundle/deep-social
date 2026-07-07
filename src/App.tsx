@@ -22,7 +22,9 @@ import {
   addVibe,
   createEventPin,
   dmUnreadCounts,
+  getConnectTarget,
   getMyAvatarEmoji,
+  getMyProfile,
   getNearbyPins,
   joinMeetup,
   myFriendships,
@@ -30,6 +32,7 @@ import {
   requestFriend,
   respondFriend,
   setMyAvatarEmoji,
+  setVisibilityMode,
   subscribeToDirectMessages,
   subscribeToFriendships,
   subscribeToPosts,
@@ -45,6 +48,9 @@ import PinComposer, { type PinFormValues } from './components/PinComposer'
 import VibeComposer from './components/VibeComposer'
 import InterestChips from './components/InterestChips'
 import FriendChatDrawer from './components/FriendChatDrawer'
+import SharePresenceModal from './components/SharePresenceModal'
+import DeepCard, { type ConnectOutcome } from './components/DeepCard'
+import type { ConnectTarget, VisibilityMode } from './types'
 
 interface Toast {
   id: number
@@ -105,6 +111,14 @@ export default function App() {
   const [mePos, setMePos] = useState(CITY_CENTER)
   const didLocate = useRef(false)
   const [sheetSignal, setSheetSignal] = useState(0)
+  const [visibility, setVisibility] = useState<VisibilityMode>('ghost')
+  const [shareOpen, setShareOpen] = useState(false)
+  const [deepCard, setDeepCard] = useState<{
+    target: ConnectTarget
+    outcome: ConnectOutcome
+    errorText?: string
+  } | null>(null)
+  const connectHandled = useRef(false)
 
   const displayWorld = {
     members: world.members,
@@ -269,6 +283,70 @@ export default function App() {
       return next
     })
   }
+
+  // My visibility mode (for the settings toggle).
+  useEffect(() => {
+    if (!backendLive) return
+    getMyProfile()
+      .then((p) => {
+        if (p) setVisibility(p.visibilityMode)
+      })
+      .catch((e) => console.warn('[visibility] load failed:', e))
+  }, [backendLive])
+
+  const handleSetVisibility = (mode: VisibilityMode) => {
+    setVisibility(mode)
+    setVisibilityMode(mode)
+      .then(() =>
+        toast(
+          mode === 'ghost'
+            ? "Ghost mode — you're invisible to strangers"
+            : mode === 'observer'
+              ? 'Observer — you appear as an anonymous dot nearby'
+              : 'Beacon — your full profile is visible nearby',
+        ),
+      )
+      .catch(() => toast('Could not update visibility — is migration 0008 applied?'))
+  }
+
+  // In-person handshake: a #/connect/<id> deep link (from a scanned QR).
+  // Stash it on first load — it must survive an OAuth redirect for new users —
+  // then process once we have a real backend session.
+  useEffect(() => {
+    const m = window.location.hash.match(/#\/connect\/([0-9a-fA-F-]{36})/)
+    if (m) {
+      localStorage.setItem('deep-social.pending-connect', m[1])
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!backendLive || connectHandled.current) return
+    const pending = localStorage.getItem('deep-social.pending-connect')
+    if (!pending) return
+    connectHandled.current = true
+    localStorage.removeItem('deep-social.pending-connect')
+    if (pending === session?.id) {
+      toast("That's your own connect code 🙂")
+      return
+    }
+    getConnectTarget(pending)
+      .then(async (target) => {
+        if (!target) {
+          toast('That connection code is no longer valid')
+          return
+        }
+        try {
+          const status = await requestFriend(pending)
+          setDeepCard({ target, outcome: status === 'accepted' ? 'connected' : 'sent' })
+          refreshFriends()
+        } catch (e) {
+          setDeepCard({ target, outcome: 'error', errorText: (e as Error).message })
+        }
+      })
+      .catch((e) => console.warn('[connect] failed:', e))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backendLive])
 
   const handleAddFriend = async (profile: ProfileHit) => {
     try {
@@ -584,6 +662,7 @@ export default function App() {
         liveCount={liveCount}
         backendLive={backendLive}
         stats={menuStats}
+        visibilityMode={visibility}
         onPick={handleSearchPick}
         onAddFriend={handleAddFriend}
         onNavigateTab={(t) => {
@@ -591,6 +670,8 @@ export default function App() {
           setSheetSignal((n) => n + 1)
         }}
         onPickAvatar={handlePickAvatar}
+        onSetVisibility={handleSetVisibility}
+        onSharePresence={() => setShareOpen(true)}
         onSignOut={handleSignOut}
       />
 
@@ -682,6 +763,40 @@ export default function App() {
       )}
 
       {dmFriend && <FriendChatDrawer friend={dmFriend} onClose={() => setDmFriend(null)} />}
+
+      {shareOpen && session?.id && (
+        <SharePresenceModal
+          userId={session.id}
+          name={session.name}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
+
+      {deepCard && (
+        <DeepCard
+          target={deepCard.target}
+          outcome={deepCard.outcome}
+          errorText={deepCard.errorText}
+          onMessage={
+            deepCard.outcome === 'connected'
+              ? () => {
+                  const t = deepCard.target
+                  setDeepCard(null)
+                  openFriendChat({
+                    userId: t.id,
+                    displayName: t.displayName,
+                    avatarUrl: t.avatarUrl,
+                    avatarEmoji: t.avatarEmoji,
+                    interests: t.interests,
+                    state: 'friend',
+                    since: new Date().toISOString(),
+                  })
+                }
+              : undefined
+          }
+          onClose={() => setDeepCard(null)}
+        />
+      )}
 
       <div className="toasts">
         {toasts.map((t) => (

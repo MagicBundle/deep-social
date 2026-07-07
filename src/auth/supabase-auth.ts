@@ -23,6 +23,7 @@ function mapUser(user: User): Session {
     name: displayName(user),
     provider: 'google',
     avatar: '🙂',
+    id: user.id,
     email: user.email ?? undefined,
     picture: (user.user_metadata?.avatar_url as string | undefined) ?? undefined,
     real: true,

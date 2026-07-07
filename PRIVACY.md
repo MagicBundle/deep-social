@@ -33,10 +33,16 @@ processing described here.
 
 - No analytics, no advertising trackers, no cookies beyond a login session
   stored in your own browser (localStorage).
-- Your **device location is never uploaded**. It is used only inside your
-  browser to center the map. The optional "live location sharing" feature is
-  **off by default**; if enabled later it supports precise/approximate/off
-  tiers, and approximate coordinates are blurred to ~500 m server-side.
+- Your **device location is never uploaded** unless you opt in. It is used
+  inside your browser to center the map. Visibility to other people is
+  **off by default** ("Ghost" mode) and you control it in Profile → Privacy
+  & visibility:
+  - **Ghost** — invisible to strangers (default).
+  - **Observer** — you appear as an anonymous dot showing only your interests;
+    your name and photo are withheld and your location is blurred to ~500 m.
+  - **Beacon** — your full profile and precise location are visible to people
+    nearby.
+  Accepted connections always see your full profile regardless of this setting.
 - We never sell or share data with third parties for their own purposes.
 
 ## Where the data lives (processors)

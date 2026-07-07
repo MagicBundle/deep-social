@@ -36,6 +36,8 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | **Visitor geolocation**: map centers on you (with permission), Luxembourg fallback | ✅ |
 | **Member search + friends**: top-bar search finds real registered members; requests / auto-accept / decline / remove in a live-updating Friends tab | ✅ |
 | **Direct messages**: tap an accepted friend to open a 1:1 chat (friendship-gated in RLS), realtime delivery, unread badges | ✅ |
+| **Visibility modes** (Ghost / Observer / Beacon): control what strangers see; friends always see you. Enforced in `nearby_profiles` | ✅ |
+| **QR in-person handshake**: "Share my presence" → QR of an HTTPS deep link; scanning with a phone camera sends a connection request and shows the "Deep Card" profile | ✅ |
 
 ## Architecture
 

@@ -56,6 +56,8 @@ export interface Session {
   name: string
   provider: Provider
   avatar: string
+  /** Supabase user id, present for real (backend) sessions — used for QR */
+  id?: string
   email?: string
   picture?: string
   /** user-picked emoji avatar; takes precedence over the provider photo */
@@ -72,12 +74,17 @@ export interface World {
 // ─── Data backbone (Supabase/PostGIS) ───────────────────────────────────
 
 /** A member near a queried point, as returned by the nearby_profiles RPC.
- *  Coordinates already reflect the member's privacy tier (precise/fuzzed). */
+ *  Coordinates and identity already reflect the member's visibility mode:
+ *  `identified` false means an anonymous observer dot (name/avatar withheld,
+ *  interests + fuzzed location only). */
 export interface NearbyProfile {
   id: string
-  displayName: string
+  displayName?: string
   avatarUrl?: string
+  avatarEmoji?: string
   interests: string[]
+  identified: boolean
+  isFriend: boolean
   lat: number
   lng: number
   distanceM: number
@@ -157,7 +164,9 @@ export interface CreateEventPinInput {
   venue?: string
 }
 
-export type LocationSharing = 'precise' | 'fuzzed' | 'off'
+/** Visibility to strangers: ghost = invisible, observer = anonymous dot,
+ *  beacon = full profile. Accepted friends always see you regardless. */
+export type VisibilityMode = 'ghost' | 'observer' | 'beacon'
 
 /** The signed-in user's own profile row (includes private fields). */
 export interface MyProfile {
@@ -165,11 +174,21 @@ export interface MyProfile {
   email?: string
   displayName: string
   avatarUrl?: string
+  avatarEmoji?: string
   interests: string[]
-  locationSharing: LocationSharing
+  visibilityMode: VisibilityMode
   lat?: number
   lng?: number
   locationUpdatedAt?: string
+}
+
+/** A profile resolved by id for the QR "Deep Card" (in-person handshake). */
+export interface ConnectTarget {
+  id: string
+  displayName: string
+  avatarUrl?: string
+  avatarEmoji?: string
+  interests: string[]
 }
 
 export interface MapFocus {

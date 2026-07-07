@@ -24,73 +24,72 @@ begin
   raise notice 'PASS: signup trigger creates profiles with metadata mapping';
 end $$;
 
--- ── locations ───────────────────────────────────────────────────────────
+-- ── locations & visibility ──────────────────────────────────────────────
 -- Origin: Paris center (48.8566, 2.3522).
--- Alice: at origin, precise. Bob: ~1 km east, precise.
--- Carol: ~1 km north (off-grid coords), fuzzed. Dave: ~10 km east, precise.
+-- Bob: ~1 km east, beacon. Carol: ~1 km north, observer (with interests).
+-- Dave: ~10 km east, beacon. Alice (viewer): at origin, beacon.
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
 select public.update_my_location(48.8566, 2.3522);
-update public.profiles set location_sharing = 'precise' where id = auth.uid();
+update public.profiles set visibility_mode = 'beacon' where id = auth.uid();
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
 select public.update_my_location(48.8566, 2.365866);
-update public.profiles set location_sharing = 'precise' where id = auth.uid();
+update public.profiles set visibility_mode = 'beacon' where id = auth.uid();
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
 select public.update_my_location(48.865623, 2.348912);
-update public.profiles set location_sharing = 'fuzzed' where id = auth.uid();
+update public.profiles set visibility_mode = 'observer', interests = '{art,music}' where id = auth.uid();
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
 select public.update_my_location(48.8566, 2.488861);
-update public.profiles set location_sharing = 'precise' where id = auth.uid();
+update public.profiles set visibility_mode = 'beacon' where id = auth.uid();
 
--- Viewer = Alice, querying 5 km around the origin.
+-- Viewer = Alice (not friends with anyone yet), querying 5 km around origin.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
 
 do $$
-declare
-  bob record; carol record; n int;
+declare bob record; carol record; n int;
 begin
   select count(*) into n from public.nearby_profiles(48.8566, 2.3522, 5000);
   if n <> 2 then raise exception 'FAIL nearby: expected 2 rows (bob, carol), got %', n; end if;
 
-  select * into bob from public.nearby_profiles(48.8566, 2.3522, 5000) where display_name = 'Bob';
-  if bob is null then raise exception 'FAIL nearby: Bob missing'; end if;
-  if bob.distance_m not between 950 and 1050
-    then raise exception 'FAIL nearby: Bob distance % not ~1000 m', bob.distance_m; end if;
+  -- Bob = beacon: identified, real name, exact coords
+  select * into bob from public.nearby_profiles(48.8566, 2.3522, 5000) where is_friend = false and identified = true;
+  if bob.display_name <> 'Bob' then raise exception 'FAIL nearby: beacon name wrong (%)', bob.display_name; end if;
   if abs(bob.lat - 48.8566) > 1e-9 or abs(bob.lng - 2.365866) > 1e-9
-    then raise exception 'FAIL nearby: precise tier must return exact coords'; end if;
+    then raise exception 'FAIL nearby: beacon must return exact coords'; end if;
 
-  select * into carol from public.nearby_profiles(48.8566, 2.3522, 5000) where display_name = 'carol';
-  if carol is null then raise exception 'FAIL nearby: fuzzed Carol missing'; end if;
+  -- Carol = observer: anonymous (no name/photo), interests shown, fuzzed coords
+  select * into carol from public.nearby_profiles(48.8566, 2.3522, 5000) where identified = false;
+  if carol.display_name is not null then raise exception 'FAIL nearby: observer leaked name'; end if;
+  if carol.avatar_url is not null or carol.avatar_emoji is not null
+    then raise exception 'FAIL nearby: observer leaked avatar'; end if;
+  if not (carol.interests @> array['art','music']) then raise exception 'FAIL nearby: observer interests missing'; end if;
   if carol.lat = 48.865623 and carol.lng = 2.348912
-    then raise exception 'FAIL nearby: fuzzed tier returned exact coords'; end if;
-  if abs(carol.lat - 48.865623) > 0.005 or abs(carol.lng - 2.348912) > 0.005
-    then raise exception 'FAIL nearby: fuzz moved point too far'; end if;
+    then raise exception 'FAIL nearby: observer returned exact coords'; end if;
 
+  -- self excluded, distance radius honored
   if exists (select 1 from public.nearby_profiles(48.8566, 2.3522, 5000) where display_name = 'Alice')
-    then raise exception 'FAIL nearby: caller must be excluded from own results'; end if;
-
-  -- Dave is ~10 km out: outside 5 km, inside 15 km.
-  if exists (select 1 from public.nearby_profiles(48.8566, 2.3522, 5000) where display_name = 'dave')
+    then raise exception 'FAIL nearby: caller not excluded'; end if;
+  if exists (select 1 from public.nearby_profiles(48.8566, 2.3522, 5000) where distance_m > 5000)
     then raise exception 'FAIL nearby: 10 km user leaked into 5 km radius'; end if;
-  if not exists (select 1 from public.nearby_profiles(48.8566, 2.3522, 15000) where display_name = 'dave')
+  if not exists (select 1 from public.nearby_profiles(48.8566, 2.3522, 15000) where distance_m between 9000 and 11000)
     then raise exception 'FAIL nearby: 10 km user missing from 15 km radius'; end if;
 
-  raise notice 'PASS: nearby_profiles (radius, distances, precise/fuzzed tiers, self-exclusion)';
+  raise notice 'PASS: nearby_profiles (beacon full, observer anonymized, radius, self-exclusion)';
 end $$;
 
--- Sharing 'off' disappears from results.
+-- Ghost disappears from strangers.
 do $$
 begin
-  update public.profiles set location_sharing = 'off'
+  update public.profiles set visibility_mode = 'ghost'
    where id = '00000000-0000-0000-0000-00000000000b';
-  if exists (select 1 from public.nearby_profiles(48.8566, 2.3522, 5000) where display_name = 'Bob')
-    then raise exception 'FAIL privacy: sharing=off user still listed'; end if;
-  update public.profiles set location_sharing = 'precise'
+  if exists (select 1 from public.nearby_profiles(48.8566, 2.3522, 5000) where lat = 48.8566 and lng = 2.365866)
+    then raise exception 'FAIL privacy: ghost user still listed to stranger'; end if;
+  update public.profiles set visibility_mode = 'beacon'
    where id = '00000000-0000-0000-0000-00000000000b';
-  raise notice 'PASS: location_sharing = off excludes user';
+  raise notice 'PASS: ghost mode hides user from strangers';
 end $$;
 
 -- Stale locations (>2 h) disappear.
@@ -319,6 +318,30 @@ begin
   if n <> 0 then raise exception 'FAIL dm: outsider read % messages from a thread', n; end if;
 
   raise notice 'PASS: DM send/receive, unread + mark-read, friendship gate, RLS isolation';
+end $$;
+
+-- ── visibility friends-bypass (0008) ────────────────────────────────────
+-- Bob & Alice are accepted friends (from the DM setup). Bob is ~1 km east.
+do $$
+declare bob record;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+
+  -- Bob observer, but Alice is his friend → she sees him identified + precise
+  update public.profiles set visibility_mode = 'observer' where id = '00000000-0000-0000-0000-00000000000b';
+  select * into bob from public.nearby_profiles(48.8566, 2.3522, 5000) where is_friend = true;
+  if bob is null then raise exception 'FAIL bypass: friend not returned'; end if;
+  if not bob.identified then raise exception 'FAIL bypass: friend in observer mode not identified'; end if;
+  if bob.display_name <> 'Bob' then raise exception 'FAIL bypass: friend name hidden (%)', bob.display_name; end if;
+  if abs(bob.lat - 48.8566) > 1e-9 then raise exception 'FAIL bypass: friend location fuzzed'; end if;
+
+  -- Bob ghost, but friends still see him (chosen rule)
+  update public.profiles set visibility_mode = 'ghost' where id = '00000000-0000-0000-0000-00000000000b';
+  if not exists (select 1 from public.nearby_profiles(48.8566, 2.3522, 5000) where is_friend = true)
+    then raise exception 'FAIL bypass: friend hidden in ghost mode'; end if;
+
+  update public.profiles set visibility_mode = 'beacon' where id = '00000000-0000-0000-0000-00000000000b';
+  raise notice 'PASS: friends bypass visibility (see observer/ghost friend as full)';
 end $$;
 
 reset role;

@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ProfileHit, Session, World } from '../types'
+import type { ProfileHit, Session, VisibilityMode, World } from '../types'
 import type { PanelTab } from './SidePanel'
 import { AVATAR_EMOJIS, INTERESTS, INTEREST_BY_ID, interestFor } from '../data/mock'
 import { timeLabel } from '../sim/engine'
 import { searchProfiles } from '../services/db'
+
+const VISIBILITY_OPTIONS: { mode: VisibilityMode; emoji: string; label: string; desc: string }[] = [
+  { mode: 'ghost', emoji: '👻', label: 'Ghost', desc: 'Invisible to strangers on the map' },
+  { mode: 'observer', emoji: '🔭', label: 'Observer', desc: 'Anonymous dot — interests only, no name' },
+  { mode: 'beacon', emoji: '📡', label: 'Beacon', desc: 'Full profile visible to people nearby' },
+]
 
 export interface MenuStats {
   friendCount: number
@@ -28,10 +34,13 @@ interface Props {
   liveCount: number
   backendLive: boolean
   stats: MenuStats
+  visibilityMode: VisibilityMode
   onPick: (r: SearchResult) => void
   onAddFriend: (profile: ProfileHit) => void
   onNavigateTab: (tab: PanelTab) => void
   onPickAvatar: (emoji: string | null) => void
+  onSetVisibility: (mode: VisibilityMode) => void
+  onSharePresence: () => void
   onSignOut: () => void
 }
 
@@ -48,16 +57,21 @@ export default function TopBar({
   liveCount,
   backendLive,
   stats,
+  visibilityMode,
   onPick,
   onAddFriend,
   onNavigateTab,
   onPickAvatar,
+  onSetVisibility,
+  onSharePresence,
   onSignOut,
 }: Props) {
   const [query, setQuery] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
+  const [visibilityOpen, setVisibilityOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const backendUser = Boolean(session.real && session.id)
 
   const goTab = (tab: PanelTab) => {
     setMenuOpen(false)
@@ -259,6 +273,48 @@ export default function TopBar({
                     </button>
                   )}
                 </div>
+              )}
+
+              {backendUser && (
+                <>
+                  <button className="menu-row" onClick={() => setVisibilityOpen((o) => !o)}>
+                    <span>🔭 Privacy &amp; visibility</span>
+                    <small>
+                      {VISIBILITY_OPTIONS.find((v) => v.mode === visibilityMode)?.label ?? 'Ghost'} ·
+                      change
+                    </small>
+                  </button>
+
+                  {visibilityOpen && (
+                    <div className="visibility-grid">
+                      {VISIBILITY_OPTIONS.map((v) => (
+                        <button
+                          key={v.mode}
+                          className={`visibility-opt${visibilityMode === v.mode ? ' active' : ''}`}
+                          onClick={() => onSetVisibility(v.mode)}
+                        >
+                          <span className="vis-emoji">{v.emoji}</span>
+                          <span className="vis-text">
+                            <strong>{v.label}</strong>
+                            <small>{v.desc}</small>
+                          </span>
+                          {visibilityMode === v.mode && <span className="vis-check">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    className="menu-row"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onSharePresence()
+                    }}
+                  >
+                    <span>📡 Share my presence</span>
+                    <small>Show a QR to connect in person</small>
+                  </button>
+                </>
               )}
 
               <button onClick={onSignOut}>Sign out</button>

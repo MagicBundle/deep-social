@@ -1,13 +1,14 @@
 import type {
+  ConnectTarget,
   CreateEventPinInput,
   DirectMessage,
   FriendEntry,
   FriendState,
-  LocationSharing,
   MyProfile,
   NearbyProfile,
   Pin,
   ProfileHit,
+  VisibilityMode,
   Vibe,
 } from '../types'
 import { getSupabase } from './supabase'
@@ -58,8 +59,9 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     email: row.email ?? undefined,
     displayName: row.display_name,
     avatarUrl: row.avatar_url ?? undefined,
+    avatarEmoji: row.avatar_emoji ?? undefined,
     interests: row.interests ?? [],
-    locationSharing: row.location_sharing as LocationSharing,
+    visibilityMode: row.visibility_mode as VisibilityMode,
     lat: row.lat ?? undefined,
     lng: row.lng ?? undefined,
     locationUpdatedAt: row.location_updated_at ?? undefined,
@@ -73,14 +75,33 @@ export async function setMyInterests(interests: string[]): Promise<void> {
   if (error) fail('setMyInterests', error.message)
 }
 
-export async function setLocationSharing(tier: LocationSharing): Promise<void> {
+export async function setVisibilityMode(mode: VisibilityMode): Promise<void> {
   const uid = (await getSupabase().auth.getUser()).data.user?.id
-  if (!uid) fail('setLocationSharing', 'not authenticated')
+  if (!uid) fail('setVisibilityMode', 'not authenticated')
   const { error } = await getSupabase()
     .from('profiles')
-    .update({ location_sharing: tier })
+    .update({ visibility_mode: mode })
     .eq('id', uid)
-  if (error) fail('setLocationSharing', error.message)
+  if (error) fail('setVisibilityMode', error.message)
+}
+
+/** Resolve a single profile by id for the QR handshake Deep Card. Sharing a
+ *  QR is explicit consent, so the full profile is shown regardless of mode. */
+export async function getConnectTarget(userId: string): Promise<ConnectTarget | null> {
+  const { data, error } = await getSupabase()
+    .from('profiles')
+    .select('id, display_name, avatar_url, avatar_emoji, interests')
+    .eq('id', userId)
+    .maybeSingle()
+  if (error) fail('getConnectTarget', error.message)
+  if (!data) return null
+  return {
+    id: data.id as string,
+    displayName: data.display_name as string,
+    avatarUrl: (data.avatar_url as string | null) ?? undefined,
+    avatarEmoji: (data.avatar_emoji as string | null) ?? undefined,
+    interests: (data.interests as string[]) ?? [],
+  }
 }
 
 // ─── location & geospatial queries ───────────────────────────────────────
@@ -105,9 +126,12 @@ export async function getNearbyProfiles(
   if (error) fail('getNearbyProfiles', error.message)
   return (data ?? []).map((r: Record<string, unknown>) => ({
     id: r.id as string,
-    displayName: r.display_name as string,
+    displayName: (r.display_name as string | null) ?? undefined,
     avatarUrl: (r.avatar_url as string | null) ?? undefined,
+    avatarEmoji: (r.avatar_emoji as string | null) ?? undefined,
     interests: (r.interests as string[]) ?? [],
+    identified: Boolean(r.identified),
+    isFriend: Boolean(r.is_friend),
     lat: r.lat as number,
     lng: r.lng as number,
     distanceM: r.distance_m as number,
