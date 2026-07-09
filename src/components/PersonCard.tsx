@@ -1,5 +1,5 @@
 import type { FriendState, NearbyProfile } from '../types'
-import { INTEREST_BY_ID } from '../data/mock'
+import { INTEREST_BY_ID, interestFor } from '../data/mock'
 
 interface Props {
   person: NearbyProfile
@@ -48,6 +48,12 @@ export default function PersonCard({
           </p>
         </div>
       </div>
+
+      {person.vibe && (
+        <p className="pc-vibe">
+          ⚡ Tonight: {interestFor(person.vibe).emoji} <strong>{interestFor(person.vibe).label}</strong>
+        </p>
+      )}
 
       {person.interests.length > 0 && (
         <div className="deep-interests pc-interests">

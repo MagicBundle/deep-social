@@ -168,9 +168,12 @@ User A (moving)          Supabase Realtime         Engine Worker              Po
 
 ## Build order (each increment shippable alone)
 
-1. **Vibes + heartbeats** — `current_vibe` setter in the profile menu;
-   Broadcast heartbeat publishing behind the existing visibility gates.
-   Pure additions to the current stack.
+1. **Vibes + heartbeats** ✅ *(shipped 2026-07-07, migration 0009)* —
+   `current_vibe` (3 h TTL) set from the profile menu, visible on beacon
+   profiles and anonymous observer dots via `nearby_profiles`; adaptive
+   heartbeats (~25 s + on >100 m move + on vibe change) publish to the
+   `hot-heartbeats` Broadcast channel behind the visibility gates, with
+   observer coordinates grid-snapped client-side.
 2. **Engine worker + synthetic agents** — tick loop, event log, clustering;
    sim members feed it from day one.
 3. **Hot-layer rendering** — heat/cluster overlay + `social_events` toasts,

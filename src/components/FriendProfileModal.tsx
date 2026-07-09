@@ -1,5 +1,5 @@
 import type { FriendEntry, NearbyProfile } from '../types'
-import { INTEREST_BY_ID } from '../data/mock'
+import { INTEREST_BY_ID, interestFor } from '../data/mock'
 
 interface Props {
   friend: FriendEntry
@@ -54,6 +54,13 @@ export default function FriendProfileModal({
               : 'Friend request pending'}
           {nearby && ` · ~${(nearby.distanceM / 1000).toFixed(1)} km away`}
         </p>
+
+        {nearby?.vibe && (
+          <p className="pc-vibe">
+            ⚡ Tonight: {interestFor(nearby.vibe).emoji}{' '}
+            <strong>{interestFor(nearby.vibe).label}</strong>
+          </p>
+        )}
 
         {friend.interests.length > 0 && (
           <div className="deep-interests">

@@ -249,8 +249,10 @@ export default function SidePanel({
                   </strong>
                   <small>
                     ~{(p.distanceM / 1000).toFixed(1)} km ·{' '}
-                    {p.interests.slice(0, 3).map((i) => INTEREST_BY_ID[i]?.label ?? i).join(', ') ||
-                      'no interests yet'}
+                    {p.vibe
+                      ? `⚡ ${interestFor(p.vibe).label}`
+                      : p.interests.slice(0, 3).map((i) => INTEREST_BY_ID[i]?.label ?? i).join(', ') ||
+                        'no interests yet'}
                   </small>
                 </span>
               </div>

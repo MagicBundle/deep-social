@@ -57,7 +57,12 @@ function personIconHtml(p: NearbyProfile): string {
 }
 
 function personTooltip(p: NearbyProfile): string {
-  if (p.identified) return `${p.displayName ?? 'Member'}${p.isFriend ? ' · friend' : ''}`
+  const vibe = p.vibe ? interestFor(p.vibe) : null
+  if (p.identified) {
+    const name = `${p.displayName ?? 'Member'}${p.isFriend ? ' · friend' : ''}`
+    return vibe ? `${name} · ⚡ ${vibe.emoji} ${vibe.label}` : name
+  }
+  if (vibe) return `Someone ⚡ ${vibe.emoji} ${vibe.label} tonight`
   const labels = p.interests
     .slice(0, 2)
     .map((i) => INTEREST_BY_ID[i]?.label ?? i)

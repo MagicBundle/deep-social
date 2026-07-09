@@ -11,6 +11,7 @@ import type {
   VisibilityMode,
   Vibe,
 } from '../types'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabase } from './supabase'
 
 // Typed data layer over the SQL API defined in supabase/migrations/.
@@ -62,10 +63,23 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     avatarEmoji: row.avatar_emoji ?? undefined,
     interests: row.interests ?? [],
     visibilityMode: row.visibility_mode as VisibilityMode,
+    currentVibe: row.current_vibe ?? undefined,
     lat: row.lat ?? undefined,
     lng: row.lng ?? undefined,
     locationUpdatedAt: row.location_updated_at ?? undefined,
   }
+}
+
+/** Set (or clear) the transient "tonight's vibe" tag. Server reads treat it
+ *  as expired after 3 hours. */
+export async function setMyVibe(vibe: string | null): Promise<void> {
+  const uid = (await getSupabase().auth.getUser()).data.user?.id
+  if (!uid) fail('setMyVibe', 'not authenticated')
+  const { error } = await getSupabase()
+    .from('profiles')
+    .update({ current_vibe: vibe, vibe_set_at: vibe ? new Date().toISOString() : null })
+    .eq('id', uid)
+  if (error) fail('setMyVibe', error.message)
 }
 
 export async function setMyInterests(interests: string[]): Promise<void> {
@@ -130,6 +144,7 @@ export async function getNearbyProfiles(
     avatarUrl: (r.avatar_url as string | null) ?? undefined,
     avatarEmoji: (r.avatar_emoji as string | null) ?? undefined,
     interests: (r.interests as string[]) ?? [],
+    vibe: (r.vibe as string | null) ?? undefined,
     identified: Boolean(r.identified),
     isFriend: Boolean(r.is_friend),
     lat: r.lat as number,
@@ -303,6 +318,46 @@ export async function dmUnreadCounts(): Promise<Record<string, number>> {
   const out: Record<string, number> = {}
   for (const r of data ?? []) out[r.friend_id as string] = r.unread as number
   return out
+}
+
+// ─── Hot Layer: heartbeats (increment 1) ─────────────────────────────────
+// Ephemeral position/vibe events over a Broadcast channel — deliberately
+// NOT postgres_changes (no DB write per heartbeat). Today nothing consumes
+// them; the simulation engine (increment 2) subscribes to this stream.
+// Privacy parity with nearby_profiles: callers must pass observer positions
+// already grid-snapped (snapForObserver), and ghosts must not publish.
+
+export interface Heartbeat {
+  userId: string
+  lat: number
+  lng: number
+  vibe: string | null
+  visibility: 'observer' | 'beacon'
+  at: string
+}
+
+/** ~500 m grid snap, matching the server's ST_SnapToGrid(…, 0.005). */
+export function snapForObserver(v: number): number {
+  return Math.round(v / 0.005) * 0.005
+}
+
+let hbChannel: ReturnType<SupabaseClient['channel']> | null = null
+let hbReady = false
+
+export function publishHeartbeat(hb: Omit<Heartbeat, 'at'>): void {
+  const supabase = getSupabase()
+  if (!hbChannel) {
+    hbChannel = supabase.channel('hot-heartbeats')
+    hbChannel.subscribe((status) => {
+      hbReady = status === 'SUBSCRIBED'
+    })
+  }
+  if (!hbReady) return // channel still joining; the next beat will land
+  void hbChannel.send({
+    type: 'broadcast',
+    event: 'heartbeat',
+    payload: { ...hb, at: new Date().toISOString() } satisfies Heartbeat,
+  })
 }
 
 /** Fires on any DM the caller sends or receives (RLS-scoped). */

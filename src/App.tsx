@@ -17,7 +17,7 @@ import {
   saveSession,
   signOutEverywhere,
 } from './auth'
-import { CHAT_REPLIES, CHAT_SEEDS, CITY_CENTER } from './data/mock'
+import { CHAT_REPLIES, CHAT_SEEDS, CITY_CENTER, interestFor } from './data/mock'
 import {
   addVibe,
   createEventPin,
@@ -29,11 +29,14 @@ import {
   getNearbyProfiles,
   joinMeetup,
   myFriendships,
+  publishHeartbeat,
   removeFriend,
   requestFriend,
   respondFriend,
   setMyAvatarEmoji,
+  setMyVibe,
   setVisibilityMode,
+  snapForObserver,
   subscribeToDirectMessages,
   subscribeToFriendships,
   subscribeToPosts,
@@ -116,6 +119,7 @@ export default function App() {
   const didLocate = useRef(false)
   const [sheetSignal, setSheetSignal] = useState(0)
   const [visibility, setVisibility] = useState<VisibilityMode>('ghost')
+  const [myVibe, setMyVibe_] = useState<string | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
   const [nearbyPeople, setNearbyPeople] = useState<NearbyProfile[]>([])
   const [personId, setPersonId] = useState<string | null>(null)
@@ -243,19 +247,40 @@ export default function App() {
   // Center the experience on the visitor (with their permission). Falls
   // back silently to the Luxembourg default when denied or unavailable.
   useEffect(() => {
-    if (!session || didLocate.current || !('geolocation' in navigator)) return
-    didLocate.current = true
-    navigator.geolocation.getCurrentPosition(
+    if (!session || !('geolocation' in navigator)) return
+    // One-shot: center the map on first fix per app load
+    if (!didLocate.current) {
+      didLocate.current = true
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const here = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+          setMePos(here)
+          setLocatedPos(here)
+          flyTo(here.lat, here.lng, 13)
+          toast('Centered on your location 📍')
+        },
+        () => {},
+        { timeout: 8000, maximumAge: 300_000 },
+      )
+    }
+    // Keep following while the app is open, but only accept significant
+    // movement (>100 m) so state churn and heartbeats stay calm.
+    const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const here = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-        setMePos(here)
-        setLocatedPos(here)
-        flyTo(here.lat, here.lng, 13)
-        toast('Centered on your location 📍')
+        setLocatedPos((prev) => {
+          if (!prev) return here
+          const dLat = (here.lat - prev.lat) * 111_320
+          const dLng = (here.lng - prev.lng) * 111_320 * Math.cos((here.lat * Math.PI) / 180)
+          if (Math.hypot(dLat, dLng) < 100) return prev
+          setMePos(here)
+          return here
+        })
       },
       () => {},
-      { timeout: 8000, maximumAge: 300_000 },
+      { enableHighAccuracy: false, maximumAge: 60_000 },
     )
+    return () => navigator.geolocation.clearWatch(watchId)
   }, [session])
 
   // Publish my position to the backend — but only with a real device fix
@@ -267,6 +292,28 @@ export default function App() {
       console.warn('[presence] publish failed:', e),
     )
   }, [backendLive, locatedPos, visibility])
+
+  // Hot Layer heartbeats: adaptive cadence — every ~25 s while the app is
+  // open, plus immediately on significant movement or vibe change (both
+  // re-run this effect). Ghosts publish nothing; observers are grid-snapped
+  // client-side to match the server's fuzzing, so the broadcast stream never
+  // carries more precision than nearby_profiles would reveal.
+  useEffect(() => {
+    if (!backendLive || !locatedPos || visibility === 'ghost' || !session?.id) return
+    const beat = () => {
+      const observer = visibility === 'observer'
+      publishHeartbeat({
+        userId: session.id!,
+        lat: observer ? snapForObserver(locatedPos.lat) : locatedPos.lat,
+        lng: observer ? snapForObserver(locatedPos.lng) : locatedPos.lng,
+        vibe: myVibe,
+        visibility,
+      })
+    }
+    beat()
+    const t = setInterval(beat, 25_000)
+    return () => clearInterval(t)
+  }, [backendLive, locatedPos, visibility, myVibe, session?.id])
 
   // Real members nearby: fetch + poll (the sim keeps the map lively; real
   // people render on top with distinct styling).
@@ -325,15 +372,32 @@ export default function App() {
     })
   }
 
-  // My visibility mode (for the settings toggle).
+  // My visibility mode + current vibe (for the profile menu).
   useEffect(() => {
     if (!backendLive) return
     getMyProfile()
       .then((p) => {
-        if (p) setVisibility(p.visibilityMode)
+        if (p) {
+          setVisibility(p.visibilityMode)
+          setMyVibe_(p.currentVibe ?? null)
+        }
       })
       .catch((e) => console.warn('[visibility] load failed:', e))
   }, [backendLive])
+
+  const handleSetVibe = (vibe: string | null) => {
+    setMyVibe_(vibe)
+    const label = vibe ? interestFor(vibe) : null
+    setMyVibe(vibe)
+      .then(() =>
+        toast(
+          label
+            ? `Tonight's vibe: ${label.emoji} ${label.label} — fades in 3 h`
+            : 'Vibe cleared',
+        ),
+      )
+      .catch(() => toast('Could not save the vibe — is migration 0009 applied?'))
+  }
 
   const handleSetVisibility = (mode: VisibilityMode) => {
     setVisibility(mode)
@@ -751,6 +815,7 @@ export default function App() {
         backendLive={backendLive}
         stats={menuStats}
         visibilityMode={visibility}
+        myVibe={myVibe}
         onPick={handleSearchPick}
         onAddFriend={handleAddFriend}
         onNavigateTab={(t) => {
@@ -759,6 +824,7 @@ export default function App() {
         }}
         onPickAvatar={handlePickAvatar}
         onSetVisibility={handleSetVisibility}
+        onSetVibe={handleSetVibe}
         onSharePresence={() => setShareOpen(true)}
         onSignOut={handleSignOut}
       />

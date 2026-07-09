@@ -41,6 +41,7 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | **Real presence on the map**: nearby members render live — beacons with avatars, observers as anonymous dashed dots, friends green-ringed; tap → person card with connect / accept / message | ✅ |
 | **Map layers**: ✨ All / 👥 Friends only / 📍 Events only toggle on the map | ✅ |
 | **Friend profiles**: tap a friend's avatar/name → minimal profile (friends-since, interests, distance, show-on-map, message, remove) | ✅ |
+| **Tonight's vibe ⚡**: a transient tag (3 h TTL) on your presence — shows on beacon profiles *and* anonymous observer dots; Hot Layer heartbeats stream behind the scenes ([docs/HOT-LAYER.md](docs/HOT-LAYER.md) increment 1) | ✅ |
 
 ## Architecture
 

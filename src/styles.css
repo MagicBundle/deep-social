@@ -1668,6 +1668,36 @@ strong.identity-link:hover {
   margin: 12px 0 0;
 }
 
+.pc-vibe {
+  margin: 12px 0 0;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.deep-card .pc-vibe {
+  margin: -4px 0 12px;
+}
+
+.vibe-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.vibe-clear {
+  width: 100%;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 6px 0 2px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .pc-hint {
   margin: 10px 0 0;
   font-size: 12px;

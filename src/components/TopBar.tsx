@@ -35,11 +35,13 @@ interface Props {
   backendLive: boolean
   stats: MenuStats
   visibilityMode: VisibilityMode
+  myVibe: string | null
   onPick: (r: SearchResult) => void
   onAddFriend: (profile: ProfileHit) => void
   onNavigateTab: (tab: PanelTab) => void
   onPickAvatar: (emoji: string | null) => void
   onSetVisibility: (mode: VisibilityMode) => void
+  onSetVibe: (vibe: string | null) => void
   onSharePresence: () => void
   onSignOut: () => void
 }
@@ -58,11 +60,13 @@ export default function TopBar({
   backendLive,
   stats,
   visibilityMode,
+  myVibe,
   onPick,
   onAddFriend,
   onNavigateTab,
   onPickAvatar,
   onSetVisibility,
+  onSetVibe,
   onSharePresence,
   onSignOut,
 }: Props) {
@@ -70,6 +74,7 @@ export default function TopBar({
   const [menuOpen, setMenuOpen] = useState(false)
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const [visibilityOpen, setVisibilityOpen] = useState(false)
+  const [vibeOpen, setVibeOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const backendUser = Boolean(session.real && session.id)
 
@@ -277,6 +282,35 @@ export default function TopBar({
 
               {backendUser && (
                 <>
+                  <button className="menu-row" onClick={() => setVibeOpen((o) => !o)}>
+                    <span>⚡ Tonight's vibe</span>
+                    <small>
+                      {myVibe
+                        ? `${interestFor(myVibe).emoji} ${interestFor(myVibe).label} · fades in 3 h`
+                        : 'not set · tell people what you’re up for'}
+                    </small>
+                  </button>
+
+                  {vibeOpen && (
+                    <div className="vibe-grid">
+                      {INTERESTS.map((i) => (
+                        <button
+                          key={i.id}
+                          className={`chip${myVibe === i.id ? ' active' : ''}`}
+                          style={{ ['--c' as string]: i.color }}
+                          onClick={() => onSetVibe(myVibe === i.id ? null : i.id)}
+                        >
+                          {i.emoji} {i.label}
+                        </button>
+                      ))}
+                      {myVibe && (
+                        <button className="vibe-clear" onClick={() => onSetVibe(null)}>
+                          Clear vibe
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <button className="menu-row" onClick={() => setVisibilityOpen((o) => !o)}>
                     <span>🔭 Privacy &amp; visibility</span>
                     <small>

@@ -83,6 +83,8 @@ export interface NearbyProfile {
   avatarUrl?: string
   avatarEmoji?: string
   interests: string[]
+  /** transient "tonight's vibe" tag (3 h TTL) — shown even for observers */
+  vibe?: string
   identified: boolean
   isFriend: boolean
   lat: number
@@ -177,6 +179,7 @@ export interface MyProfile {
   avatarEmoji?: string
   interests: string[]
   visibilityMode: VisibilityMode
+  currentVibe?: string
   lat?: number
   lng?: number
   locationUpdatedAt?: string

@@ -320,7 +320,12 @@ begin
   raise notice 'PASS: DM send/receive, unread + mark-read, friendship gate, RLS isolation';
 end $$;
 
+reset role;
+
 -- ── visibility friends-bypass (0008) ────────────────────────────────────
+-- Runs as superuser so the cross-user visibility_mode setup actually applies
+-- (under the authenticated role, RLS would silently no-op those updates and
+-- the assertions would be vacuous). auth.uid() still follows the GUC.
 -- Bob & Alice are accepted friends (from the DM setup). Bob is ~1 km east.
 do $$
 declare bob record;
@@ -342,6 +347,37 @@ begin
 
   update public.profiles set visibility_mode = 'beacon' where id = '00000000-0000-0000-0000-00000000000b';
   raise notice 'PASS: friends bypass visibility (see observer/ghost friend as full)';
+end $$;
+
+-- ── vibes (0009) ────────────────────────────────────────────────────────
+do $$
+declare v text;
+begin
+  -- Bob (beacon) sets a vibe; Alice sees it
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  update public.profiles set current_vibe = 'music', vibe_set_at = now() where id = auth.uid();
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  select np.vibe into v from public.nearby_profiles(48.8566, 2.3522, 5000) np
+   where np.display_name = 'Bob';
+  if v is distinct from 'music' then raise exception 'FAIL vibes: beacon vibe not visible (%)', v; end if;
+
+  -- Carol is an observer: anonymous, but her vibe still shows
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+  update public.profiles set current_vibe = 'art', vibe_set_at = now(),
+         location_updated_at = now() where id = auth.uid();
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  select np.vibe into v from public.nearby_profiles(48.8566, 2.3522, 5000) np
+   where np.identified = false;
+  if v is distinct from 'art' then raise exception 'FAIL vibes: observer vibe not visible (%)', v; end if;
+
+  -- Expiry: a 4-hour-old vibe reads as null
+  update public.profiles set vibe_set_at = now() - interval '4 hours'
+   where id = '00000000-0000-0000-0000-00000000000b';
+  select np.vibe into v from public.nearby_profiles(48.8566, 2.3522, 5000) np
+   where np.display_name = 'Bob';
+  if v is not null then raise exception 'FAIL vibes: expired vibe still visible (%)', v; end if;
+
+  raise notice 'PASS: vibes visible (beacon + anonymous observer), 3h expiry enforced';
 end $$;
 
 reset role;

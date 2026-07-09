@@ -28,6 +28,12 @@ processing described here.
 - **Friendships and friend requests** — visible only to the two people
   involved; nobody else can query who is friends with whom.
 - **Chosen avatar emoji and interests**, if you set them.
+- **"Tonight's vibe"**, if you set one — a single transient tag that expires
+  after ~3 hours. It is shown to people nearby, including when you are in
+  anonymous Observer mode (it never includes your name or photo). While you
+  are visible (Observer/Beacon), the app also sends periodic ephemeral
+  presence signals (position at your chosen precision + vibe) that are not
+  stored as a movement history.
 
 ## What we do NOT do
 
