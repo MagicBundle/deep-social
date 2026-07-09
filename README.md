@@ -39,6 +39,8 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | **Visibility modes** (Ghost / Observer / Beacon): control what strangers see; friends always see you. Enforced in `nearby_profiles` | ✅ |
 | **QR in-person handshake**: "Share my presence" → QR of an HTTPS deep link; scanning with a phone camera sends a connection request and shows the "Deep Card" profile | ✅ |
 | **Real presence on the map**: nearby members render live — beacons with avatars, observers as anonymous dashed dots, friends green-ringed; tap → person card with connect / accept / message | ✅ |
+| **Map layers**: ✨ All / 👥 Friends only / 📍 Events only toggle on the map | ✅ |
+| **Friend profiles**: tap a friend's avatar/name → minimal profile (friends-since, interests, distance, show-on-map, message, remove) | ✅ |
 
 ## Architecture
 

@@ -30,6 +30,7 @@ interface Props {
   onRespondFriend: (userId: string, accept: boolean) => void
   onRemoveFriend: (userId: string) => void
   onOpenFriendChat: (friend: FriendEntry) => void
+  onOpenProfile: (friend: FriendEntry) => void
   /** bump to force the mobile sheet open (e.g. profile-menu navigation) */
   openSignal: number
 }
@@ -51,6 +52,7 @@ export default function SidePanel({
   onRespondFriend,
   onRemoveFriend,
   onOpenFriendChat,
+  onOpenProfile,
   openSignal,
 }: Props) {
   const [sheet, setSheet] = useState<SheetState>('peek')
@@ -118,6 +120,12 @@ export default function SidePanel({
     ) : (
       '👤'
     ))
+    // Identity (avatar + name) opens the profile; the rest of the row keeps
+    // its primary action (chat for accepted friends).
+    const openProfile = (e: React.MouseEvent) => {
+      e.stopPropagation()
+      onOpenProfile(f)
+    }
     return (
       <div
         key={f.userId}
@@ -125,16 +133,20 @@ export default function SidePanel({
         onClick={onClick}
         role={onClick ? 'button' : undefined}
       >
-        <span className="row-emoji person">
+        <span className="row-emoji person identity-link" onClick={openProfile} title="View profile">
           {avatar}
           {unread > 0 && <span className="unread-dot">{unread}</span>}
         </span>
         <span className="row-text">
-          <strong>{f.displayName}</strong>
+          <strong className="identity-link" onClick={openProfile} title="View profile">
+            {f.displayName}
+          </strong>
           <small>
-            {onClick ? (unread > 0 ? `${unread} new message${unread > 1 ? 's' : ''}` : 'Tap to chat 💬') : f.interests.length
-              ? f.interests.map((i) => INTEREST_BY_ID[i]?.label ?? i).join(', ')
-              : 'Deep Social member'}
+            {unread > 0
+              ? `${unread} new message${unread > 1 ? 's' : ''}`
+              : f.interests.length
+                ? f.interests.map((i) => INTEREST_BY_ID[i]?.label ?? i).join(', ')
+                : 'Deep Social member'}
           </small>
         </span>
         {actions}
@@ -301,16 +313,28 @@ export default function SidePanel({
               {accepted.map((f) =>
                 friendRow(
                   f,
-                  <button
-                    className="friend-remove"
-                    title={`Remove ${f.displayName}`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onRemoveFriend(f.userId)
-                    }}
-                  >
-                    ✕
-                  </button>,
+                  <span className="friend-actions">
+                    <button
+                      className="friend-chat"
+                      title={`Message ${f.displayName}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenFriendChat(f)
+                      }}
+                    >
+                      💬
+                    </button>
+                    <button
+                      className="friend-remove"
+                      title={`Remove ${f.displayName}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onRemoveFriend(f.userId)
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </span>,
                   () => onOpenFriendChat(f),
                 ),
               )}

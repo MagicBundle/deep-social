@@ -197,3 +197,6 @@ export interface MapFocus {
   zoom: number
   nonce: number
 }
+
+/** What the map renders: everything, only friends, or only events. */
+export type MapLayer = 'both' | 'friends' | 'events'

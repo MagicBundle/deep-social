@@ -53,7 +53,8 @@ import FriendChatDrawer from './components/FriendChatDrawer'
 import SharePresenceModal from './components/SharePresenceModal'
 import DeepCard, { type ConnectOutcome } from './components/DeepCard'
 import PersonCard from './components/PersonCard'
-import type { ConnectTarget, NearbyProfile, VisibilityMode } from './types'
+import FriendProfileModal from './components/FriendProfileModal'
+import type { ConnectTarget, MapLayer, NearbyProfile, VisibilityMode } from './types'
 
 interface Toast {
   id: number
@@ -118,6 +119,8 @@ export default function App() {
   const [shareOpen, setShareOpen] = useState(false)
   const [nearbyPeople, setNearbyPeople] = useState<NearbyProfile[]>([])
   const [personId, setPersonId] = useState<string | null>(null)
+  const [mapLayer, setMapLayer] = useState<MapLayer>('both')
+  const [profileFriend, setProfileFriend] = useState<FriendEntry | null>(null)
   /** position confirmed by device geolocation (never the demo default) */
   const [locatedPos, setLocatedPos] = useState<{ lat: number; lng: number } | null>(null)
   const [deepCard, setDeepCard] = useState<{
@@ -730,6 +733,7 @@ export default function App() {
         world={displayWorld}
         people={nearbyPeople}
         filters={filters}
+        layer={mapLayer}
         selectedEventId={selectedEventId}
         onSelectEvent={selectEvent}
         onSelectPerson={selectPerson}
@@ -765,6 +769,31 @@ export default function App() {
         <InterestChips filters={filters} onToggle={toggleFilter} />
       </div>
 
+      {/* Map layer switch: everything / friends only / events only */}
+      <div className="layer-toggle" role="group" aria-label="Map layers">
+        <button
+          className={mapLayer === 'both' ? 'active' : ''}
+          title="Show everything"
+          onClick={() => setMapLayer('both')}
+        >
+          ✨ <span className="lt-label">All</span>
+        </button>
+        <button
+          className={mapLayer === 'friends' ? 'active' : ''}
+          title="Friends only"
+          onClick={() => setMapLayer('friends')}
+        >
+          👥 <span className="lt-label">Friends</span>
+        </button>
+        <button
+          className={mapLayer === 'events' ? 'active' : ''}
+          title="Events only"
+          onClick={() => setMapLayer('events')}
+        >
+          📍 <span className="lt-label">Events</span>
+        </button>
+      </div>
+
       <SidePanel
         world={displayWorld}
         filters={filters}
@@ -782,6 +811,7 @@ export default function App() {
         onRespondFriend={handleRespondFriend}
         onRemoveFriend={handleRemoveFriend}
         onOpenFriendChat={openFriendChat}
+        onOpenProfile={setProfileFriend}
         openSignal={sheetSignal}
       />
 
@@ -849,6 +879,34 @@ export default function App() {
       )}
 
       {dmFriend && <FriendChatDrawer friend={dmFriend} onClose={() => setDmFriend(null)} />}
+
+      {profileFriend && (
+        <FriendProfileModal
+          friend={profileFriend}
+          nearby={nearbyPeople.find((p) => p.id === profileFriend.userId) ?? null}
+          onMessage={() => {
+            setProfileFriend(null)
+            openFriendChat(profileFriend)
+          }}
+          onShowOnMap={() => {
+            setProfileFriend(null)
+            selectPerson(profileFriend.userId)
+          }}
+          onAccept={() => {
+            setProfileFriend(null)
+            handleRespondFriend(profileFriend.userId, true)
+          }}
+          onDecline={() => {
+            setProfileFriend(null)
+            handleRespondFriend(profileFriend.userId, false)
+          }}
+          onRemove={() => {
+            setProfileFriend(null)
+            handleRemoveFriend(profileFriend.userId)
+          }}
+          onClose={() => setProfileFriend(null)}
+        />
+      )}
 
       {selectedPerson && (
         <PersonCard

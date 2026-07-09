@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
-import type { MapFocus, NearbyProfile, SocialEvent, World } from '../types'
+import type { MapFocus, MapLayer, NearbyProfile, SocialEvent, World } from '../types'
 import { CITY_CENTER, DEFAULT_VIEW, INTEREST_BY_ID, interestFor } from '../data/mock'
 import { isLive } from '../sim/engine'
 
@@ -8,6 +8,7 @@ interface Props {
   world: World
   people: NearbyProfile[]
   filters: Set<string>
+  layer: MapLayer
   selectedEventId: string | null
   onSelectEvent: (id: string) => void
   onSelectPerson: (id: string) => void
@@ -68,6 +69,7 @@ export default function MapView({
   world,
   people,
   filters,
+  layer,
   selectedEventId,
   onSelectEvent,
   onSelectPerson,
@@ -188,6 +190,7 @@ export default function MapView({
       const el = marker.getElement()
       const dimmed = filters.size > 0 && !filters.has(e.category)
       el?.classList.toggle('dim', dimmed)
+      el?.classList.toggle('layer-hidden', layer === 'friends')
     }
     for (const [id, marker] of eventMarkers.current) {
       if (!seen.has(id)) {
@@ -195,7 +198,7 @@ export default function MapView({
         eventMarkers.current.delete(id)
       }
     }
-  }, [world.events, selectedEventId, filters])
+  }, [world.events, selectedEventId, filters, layer])
 
   // Real members (nearby_profiles): create/update/remove, like event markers.
   // Icon rebuilds when identity/mode changes (e.g. friend accepted, mode flip).
@@ -236,6 +239,8 @@ export default function MapView({
           )
         }
       }
+      const hidden = layer === 'events' || (layer === 'friends' && !p.isFriend)
+      marker.getElement()?.classList.toggle('layer-hidden', hidden)
     }
     for (const [id, marker] of personMarkers.current) {
       if (!seen.has(id)) {
@@ -243,7 +248,7 @@ export default function MapView({
         personMarkers.current.delete(id)
       }
     }
-  }, [people])
+  }, [people, layer])
 
   // Pin-drop mode: crosshair cursor + draft marker at the picked spot
   useEffect(() => {
@@ -295,8 +300,10 @@ export default function MapView({
       const el = marker.getElement()
       const dimmed = filters.size > 0 && !m.interests.some((i) => filters.has(i))
       el?.classList.toggle('dim', dimmed)
+      // Sim members are ambience: only show them on the full map
+      el?.classList.toggle('layer-hidden', layer !== 'both')
     }
-  }, [world.members, filters])
+  }, [world.members, filters, layer])
 
   useEffect(() => {
     meMarker.current?.setLatLng([mePosition.lat, mePosition.lng])
