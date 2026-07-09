@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { FriendEntry, World } from '../types'
+import type { FriendEntry, NearbyProfile, World } from '../types'
 import { INTEREST_BY_ID, interestFor } from '../data/mock'
 import { attendingCount, isLive, timeLabel } from '../sim/engine'
 import InterestChips from './InterestChips'
@@ -25,6 +25,8 @@ interface Props {
   friends: FriendEntry[]
   backendLive: boolean
   dmUnread: Record<string, number>
+  people: NearbyProfile[]
+  onSelectPerson: (id: string) => void
   onRespondFriend: (userId: string, accept: boolean) => void
   onRemoveFriend: (userId: string) => void
   onOpenFriendChat: (friend: FriendEntry) => void
@@ -44,6 +46,8 @@ export default function SidePanel({
   friends,
   backendLive,
   dmUnread,
+  people,
+  onSelectPerson,
   onRespondFriend,
   onRemoveFriend,
   onOpenFriendChat,
@@ -94,9 +98,11 @@ export default function SidePanel({
 
   const liveCount = world.events.filter(isLive).length
 
-  const people = world.members
+  const simPeople = world.members
     .filter((m) => matchesFilter(m.interests))
     .sort((a, b) => (a.status === 'heading' ? -1 : 1) - (b.status === 'heading' ? -1 : 1))
+
+  const peopleNearby = people.filter((p) => matchesFilter(p.interests))
 
   const mine = world.events.filter((e) => joined.has(e.id))
 
@@ -199,8 +205,49 @@ export default function SidePanel({
             )
           })}
 
+        {tab === 'people' && peopleNearby.length > 0 && (
+          <>
+            <div className="friend-section">Nearby now — real members</div>
+            {peopleNearby.map((p) => (
+              <div
+                key={p.id}
+                className="person-row clickable"
+                onClick={() => {
+                  setSheet('peek')
+                  onSelectPerson(p.id)
+                }}
+                role="button"
+              >
+                <span className="row-emoji person">
+                  {p.identified ? (
+                    p.avatarEmoji ??
+                    (p.avatarUrl ? (
+                      <img className="row-avatar" src={p.avatarUrl} alt="" referrerPolicy="no-referrer" />
+                    ) : (
+                      '👤'
+                    ))
+                  ) : (
+                    '🔭'
+                  )}
+                </span>
+                <span className="row-text">
+                  <strong>
+                    {p.identified ? p.displayName : 'Someone nearby'}
+                    {p.isFriend && <em className="joined-tick"> ✓</em>}
+                  </strong>
+                  <small>
+                    ~{(p.distanceM / 1000).toFixed(1)} km ·{' '}
+                    {p.interests.slice(0, 3).map((i) => INTEREST_BY_ID[i]?.label ?? i).join(', ') ||
+                      'no interests yet'}
+                  </small>
+                </span>
+              </div>
+            ))}
+            <div className="friend-section">Demo world</div>
+          </>
+        )}
         {tab === 'people' &&
-          people.map((m) => (
+          simPeople.map((m) => (
             <div key={m.id} className="person-row">
               <span className="row-emoji person">{m.avatar}</span>
               <span className="row-text">

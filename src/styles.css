@@ -1536,6 +1536,89 @@ input {
   }
 }
 
+/* ---------- Real members on the map ---------- */
+
+.rp-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #0f1117;
+  border: 2.5px solid var(--brand-b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  overflow: hidden;
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease;
+}
+
+.rp-dot:hover {
+  transform: scale(1.12);
+}
+
+.rp-dot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.rp-dot.friend {
+  border-color: #4ade80;
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.rp-dot.observer {
+  border-style: dashed;
+  border-color: #94a3b8;
+  font-size: 15px;
+  box-shadow: 0 0 10px rgba(148, 163, 184, 0.35), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* Person card (tap a real member on the map) */
+.pc-avatar {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid var(--c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  overflow: hidden;
+}
+
+.pc-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pc-interests {
+  justify-content: flex-start;
+  margin: 12px 0 0;
+}
+
+.pc-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.pc-foot {
+  margin-top: 14px;
+  justify-content: flex-end;
+}
+
+.pc-foot .btn-chat:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 /* ---------- Visibility & connection ---------- */
 
 .visibility-grid {

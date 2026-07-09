@@ -26,6 +26,7 @@ import {
   getMyAvatarEmoji,
   getMyProfile,
   getNearbyPins,
+  getNearbyProfiles,
   joinMeetup,
   myFriendships,
   removeFriend,
@@ -36,6 +37,7 @@ import {
   subscribeToDirectMessages,
   subscribeToFriendships,
   subscribeToPosts,
+  updateLocation,
 } from './services/db'
 import { attendingCount, isLive, remotePinId, timeLabel, useSimulation } from './sim/engine'
 import LoginScreen from './components/LoginScreen'
@@ -50,7 +52,8 @@ import InterestChips from './components/InterestChips'
 import FriendChatDrawer from './components/FriendChatDrawer'
 import SharePresenceModal from './components/SharePresenceModal'
 import DeepCard, { type ConnectOutcome } from './components/DeepCard'
-import type { ConnectTarget, VisibilityMode } from './types'
+import PersonCard from './components/PersonCard'
+import type { ConnectTarget, NearbyProfile, VisibilityMode } from './types'
 
 interface Toast {
   id: number
@@ -113,6 +116,10 @@ export default function App() {
   const [sheetSignal, setSheetSignal] = useState(0)
   const [visibility, setVisibility] = useState<VisibilityMode>('ghost')
   const [shareOpen, setShareOpen] = useState(false)
+  const [nearbyPeople, setNearbyPeople] = useState<NearbyProfile[]>([])
+  const [personId, setPersonId] = useState<string | null>(null)
+  /** position confirmed by device geolocation (never the demo default) */
+  const [locatedPos, setLocatedPos] = useState<{ lat: number; lng: number } | null>(null)
   const [deepCard, setDeepCard] = useState<{
     target: ConnectTarget
     outcome: ConnectOutcome
@@ -239,6 +246,7 @@ export default function App() {
       (pos) => {
         const here = { lat: pos.coords.latitude, lng: pos.coords.longitude }
         setMePos(here)
+        setLocatedPos(here)
         flyTo(here.lat, here.lng, 13)
         toast('Centered on your location 📍')
       },
@@ -246,6 +254,36 @@ export default function App() {
       { timeout: 8000, maximumAge: 300_000 },
     )
   }, [session])
+
+  // Publish my position to the backend — but only with a real device fix
+  // (never the demo default) and never while in ghost mode. The server-side
+  // visibility rules decide who gets to see it and at what precision.
+  useEffect(() => {
+    if (!backendLive || !locatedPos || visibility === 'ghost') return
+    updateLocation(locatedPos.lat, locatedPos.lng).catch((e) =>
+      console.warn('[presence] publish failed:', e),
+    )
+  }, [backendLive, locatedPos, visibility])
+
+  // Real members nearby: fetch + poll (the sim keeps the map lively; real
+  // people render on top with distinct styling).
+  useEffect(() => {
+    if (!backendLive) return
+    let cancelled = false
+    const refresh = () => {
+      getNearbyProfiles(mePos.lat, mePos.lng, 60_000)
+        .then((p) => {
+          if (!cancelled) setNearbyPeople(p)
+        })
+        .catch((e) => console.warn('[presence] fetch failed:', e))
+    }
+    refresh()
+    const t = setInterval(refresh, 60_000)
+    return () => {
+      cancelled = true
+      clearInterval(t)
+    }
+  }, [backendLive, mePos, visibility])
 
   // Friends: load + live refresh (RLS scopes events to the caller's rows)
   const refreshFriends = () => {
@@ -446,9 +484,52 @@ export default function App() {
   }
 
   const selectEvent = (id: string) => {
+    setPersonId(null) // one bottom card at a time
     setSelectedEventId(id)
     const e = worldRef.current.events.find((ev) => ev.id === id)
     if (e) flyTo(e.lat, e.lng, 15)
+  }
+
+  const selectPerson = (id: string) => {
+    const p = nearbyPeople.find((np) => np.id === id)
+    if (!p) return
+    setSelectedEventId(null)
+    setPersonId(id)
+    flyTo(p.lat, p.lng, 15)
+  }
+
+  const handlePersonConnect = (person: NearbyProfile) => {
+    requestFriend(person.id)
+      .then((status) => {
+        toast(
+          status === 'accepted'
+            ? `You're connected 🎉`
+            : person.identified
+              ? `Friend request sent to ${person.displayName}`
+              : "Request sent — they'll see your profile and can accept",
+        )
+        refreshFriends()
+      })
+      .catch((e) => {
+        console.warn('[connect] request failed:', e)
+        toast('Could not send the request, try again')
+      })
+  }
+
+  const handlePersonMessage = (person: NearbyProfile) => {
+    const entry = friends.find((f) => f.userId === person.id)
+    setPersonId(null)
+    openFriendChat(
+      entry ?? {
+        userId: person.id,
+        displayName: person.displayName ?? 'Member',
+        avatarUrl: person.avatarUrl,
+        avatarEmoji: person.avatarEmoji,
+        interests: person.interests,
+        state: 'friend',
+        since: new Date().toISOString(),
+      },
+    )
   }
 
   const toggleFilter = (id: string) => {
@@ -622,6 +703,7 @@ export default function App() {
   const selectedEvent = displayWorld.events.find((e) => e.id === selectedEventId) ?? null
   const chatEvent = displayWorld.events.find((e) => e.id === chatEventId) ?? null
   const vibeEvent = displayWorld.events.find((e) => e.id === vibeFor) ?? null
+  const selectedPerson = nearbyPeople.find((p) => p.id === personId) ?? null
   const liveCount = displayWorld.events.filter(isLive).length
 
   const joinedEvents = displayWorld.events.filter((e) => joined.has(e.id))
@@ -646,9 +728,11 @@ export default function App() {
     <div className={`app${chatEvent || dmFriend ? ' chat-open' : ''}`}>
       <MapView
         world={displayWorld}
+        people={nearbyPeople}
         filters={filters}
         selectedEventId={selectedEventId}
         onSelectEvent={selectEvent}
+        onSelectPerson={selectPerson}
         focus={focus}
         pinMode={pinMode}
         draftPin={pinDraft}
@@ -693,6 +777,8 @@ export default function App() {
         friends={friends}
         backendLive={backendLive}
         dmUnread={dmUnread}
+        people={nearbyPeople}
+        onSelectPerson={selectPerson}
         onRespondFriend={handleRespondFriend}
         onRemoveFriend={handleRemoveFriend}
         onOpenFriendChat={openFriendChat}
@@ -763,6 +849,17 @@ export default function App() {
       )}
 
       {dmFriend && <FriendChatDrawer friend={dmFriend} onClose={() => setDmFriend(null)} />}
+
+      {selectedPerson && (
+        <PersonCard
+          person={selectedPerson}
+          friendState={friends.find((f) => f.userId === selectedPerson.id)?.state ?? null}
+          onConnect={() => handlePersonConnect(selectedPerson)}
+          onAccept={() => handleRespondFriend(selectedPerson.id, true)}
+          onMessage={() => handlePersonMessage(selectedPerson)}
+          onClose={() => setPersonId(null)}
+        />
+      )}
 
       {shareOpen && session?.id && (
         <SharePresenceModal

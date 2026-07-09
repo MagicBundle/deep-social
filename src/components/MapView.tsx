@@ -1,14 +1,16 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
-import type { MapFocus, SocialEvent, World } from '../types'
+import type { MapFocus, NearbyProfile, SocialEvent, World } from '../types'
 import { CITY_CENTER, DEFAULT_VIEW, INTEREST_BY_ID, interestFor } from '../data/mock'
 import { isLive } from '../sim/engine'
 
 interface Props {
   world: World
+  people: NearbyProfile[]
   filters: Set<string>
   selectedEventId: string | null
   onSelectEvent: (id: string) => void
+  onSelectPerson: (id: string) => void
   focus: MapFocus | null
   pinMode: boolean
   draftPin: { lat: number; lng: number } | null
@@ -38,11 +40,37 @@ function memberIconHtml(avatar: string, color: string): string {
   return `<div class="m-dot" style="--c:${color}"><span>${avatar}</span></div>`
 }
 
+// Real members from nearby_profiles. Observers render as anonymous dashed
+// dots; identified people (beacons/friends) show their avatar.
+function personIconHtml(p: NearbyProfile): string {
+  if (!p.identified) {
+    return '<div class="rp-dot observer"><span>🔭</span></div>'
+  }
+  const cls = p.isFriend ? 'rp-dot friend' : 'rp-dot'
+  const inner = p.avatarEmoji
+    ? `<span>${p.avatarEmoji}</span>`
+    : p.avatarUrl
+      ? `<img src="${p.avatarUrl}" referrerpolicy="no-referrer" alt="" />`
+      : '<span>👤</span>'
+  return `<div class="${cls}">${inner}</div>`
+}
+
+function personTooltip(p: NearbyProfile): string {
+  if (p.identified) return `${p.displayName ?? 'Member'}${p.isFriend ? ' · friend' : ''}`
+  const labels = p.interests
+    .slice(0, 2)
+    .map((i) => INTEREST_BY_ID[i]?.label ?? i)
+    .join(', ')
+  return labels ? `Someone into ${labels}` : 'Someone nearby'
+}
+
 export default function MapView({
   world,
+  people,
   filters,
   selectedEventId,
   onSelectEvent,
+  onSelectPerson,
   focus,
   pinMode,
   draftPin,
@@ -55,8 +83,11 @@ export default function MapView({
   const eventMarkers = useRef(new Map<string, L.Marker>())
   const draftMarker = useRef<L.Marker | null>(null)
   const meMarker = useRef<L.Marker | null>(null)
+  const personMarkers = useRef(new Map<string, L.Marker>())
   const onSelectRef = useRef(onSelectEvent)
   onSelectRef.current = onSelectEvent
+  const onSelectPersonRef = useRef(onSelectPerson)
+  onSelectPersonRef.current = onSelectPerson
   const pinModeRef = useRef(pinMode)
   pinModeRef.current = pinMode
   const onPickRef = useRef(onPickLocation)
@@ -100,6 +131,7 @@ export default function MapView({
       mapRef.current = null
       memberMarkers.current.clear()
       eventMarkers.current.clear()
+      personMarkers.current.clear()
     }
   }, [])
 
@@ -164,6 +196,54 @@ export default function MapView({
       }
     }
   }, [world.events, selectedEventId, filters])
+
+  // Real members (nearby_profiles): create/update/remove, like event markers.
+  // Icon rebuilds when identity/mode changes (e.g. friend accepted, mode flip).
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const seen = new Set<string>()
+    for (const p of people) {
+      seen.add(p.id)
+      const html = personIconHtml(p)
+      let marker = personMarkers.current.get(p.id)
+      if (!marker) {
+        marker = L.marker([p.lat, p.lng], {
+          icon: L.divIcon({
+            className: 'marker-wrap',
+            html,
+            iconSize: [34, 34],
+            iconAnchor: [17, 17],
+          }),
+          zIndexOffset: 800,
+        })
+        marker.on('click', () => onSelectPersonRef.current(p.id))
+        marker.bindTooltip(personTooltip(p), { direction: 'top', offset: [0, -14] })
+        marker.addTo(map)
+        personMarkers.current.set(p.id, marker)
+      } else {
+        marker.setLatLng([p.lat, p.lng])
+        marker.setTooltipContent(personTooltip(p))
+        const el = marker.getElement()
+        if (el && el.querySelector('.rp-dot')?.outerHTML !== html.trim()) {
+          marker.setIcon(
+            L.divIcon({
+              className: 'marker-wrap',
+              html,
+              iconSize: [34, 34],
+              iconAnchor: [17, 17],
+            }),
+          )
+        }
+      }
+    }
+    for (const [id, marker] of personMarkers.current) {
+      if (!seen.has(id)) {
+        marker.remove()
+        personMarkers.current.delete(id)
+      }
+    }
+  }, [people])
 
   // Pin-drop mode: crosshair cursor + draft marker at the picked spot
   useEffect(() => {
