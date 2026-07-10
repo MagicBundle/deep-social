@@ -39,7 +39,10 @@ export default function LoginScreen({ onLogin }: Props) {
   }, [googleLive])
 
   const handle = async (provider: Provider) => {
-    if (connecting) return
+    // Only block double-taps of the SAME provider. In the native shell the
+    // page never unloads during OAuth, so a pending Google attempt must
+    // never lock out the demo path.
+    if (connecting === provider) return
     setError(null)
     setConnecting(provider)
     try {

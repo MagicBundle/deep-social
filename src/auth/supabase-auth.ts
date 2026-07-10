@@ -62,10 +62,16 @@ export async function signInWithGoogleViaBackend(): Promise<Session> {
     })
     if (error) throw new Error(error.message)
     if (!data?.url) throw new Error('no authorization URL returned')
+    nativeCallbackReceived = false
+    const cancelled = new Promise<Session>((_, reject) => {
+      nativePendingReject = reject
+    })
     await Browser.open({ url: data.url })
-    // Settled by the appUrlOpen listener → exchangeCodeForSession →
-    // onAuthStateChange(SIGNED_IN); this promise itself never resolves.
-    return new Promise<Session>(() => {})
+    // Success: appUrlOpen → exchangeCodeForSession → SIGNED_IN (App adopts
+    // the session and this screen unmounts). Cancel: browserFinished fires
+    // without a callback and rejects, so the login screen recovers instead
+    // of staying stuck in "connecting…" (the page never unloads natively).
+    return cancelled
   }
 
   const { error } = await supabase.auth.signInWithOAuth({
@@ -83,13 +89,22 @@ export async function signInWithGoogleViaBackend(): Promise<Session> {
   return new Promise<Session>(() => {})
 }
 
+// Coordination between the pending native sign-in promise and the two
+// browser events: a completed callback must win over the dismissal event
+// (Browser.close() after success also fires browserFinished).
+let nativePendingReject: ((e: Error) => void) | null = null
+let nativeCallbackReceived = false
+
 /** Native shell only: completes OAuth when the system browser bounces back
- *  on deepsocial://auth-callback?code=…, and routes QR connect links that
- *  open the app. Safe to call unconditionally — no-ops on the web. */
+ *  on deepsocial://auth-callback?code=…, rejects the pending sign-in when
+ *  the browser is dismissed without completing, and routes QR connect links
+ *  that open the app. Safe to call unconditionally — no-ops on the web. */
 export function initNativeAuth(): void {
   if (!Capacitor.isNativePlatform()) return
+
   void CapApp.addListener('appUrlOpen', async ({ url }) => {
     if (url.startsWith(NATIVE_AUTH_CALLBACK)) {
+      nativeCallbackReceived = true
       await Browser.close().catch(() => {})
       const code = new URL(url).searchParams.get('code')
       if (!code) return
@@ -101,6 +116,14 @@ export function initNativeAuth(): void {
       const m = url.match(/#\/connect\/([0-9a-fA-F-]{36})/)
       if (m) localStorage.setItem('deep-social.pending-connect', m[1])
     }
+  })
+
+  void Browser.addListener('browserFinished', () => {
+    if (!nativeCallbackReceived && nativePendingReject) {
+      nativePendingReject(new Error('sign-in window was closed'))
+    }
+    nativePendingReject = null
+    nativeCallbackReceived = false
   })
 }
 
