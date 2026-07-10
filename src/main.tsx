@@ -12,3 +12,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </ErrorBoundary>
   </React.StrictMode>,
 )
+
+// PWA shell caching — production https only (skipped in dev and inside the
+// Capacitor shell, where the native bundle already provides the assets).
+if (import.meta.env.PROD && 'serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register(import.meta.env.BASE_URL + 'sw.js')
+      .catch((e) => console.warn('[pwa] sw registration failed:', e))
+  })
+}

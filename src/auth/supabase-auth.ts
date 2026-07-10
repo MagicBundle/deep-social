@@ -1,7 +1,15 @@
 import type { Session } from '../types'
 import type { User } from '@supabase/supabase-js'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
+import { App as CapApp } from '@capacitor/app'
 import { getSupabase } from '../services/supabase'
 import { upsertMyProfile } from '../services/db'
+
+/** Custom URL scheme that bounces OAuth back into the native shell.
+ *  Must be registered in ios/App/App/Info.plist (CFBundleURLTypes) and in
+ *  Supabase Auth → URL Configuration → additional redirect URLs. */
+const NATIVE_AUTH_CALLBACK = 'deepsocial://auth-callback'
 
 // Auth-to-DB bridge, client half. When Supabase is configured, Google
 // sign-in routes through Supabase Auth (PKCE redirect) instead of the raw
@@ -43,6 +51,23 @@ function syncProfile(user: User): void {
 
 export async function signInWithGoogleViaBackend(): Promise<Session> {
   const supabase = getSupabase()
+
+  if (Capacitor.isNativePlatform()) {
+    // Google refuses OAuth inside embedded webviews (disallowed_useragent),
+    // so the consent flow runs in the system browser and returns via our
+    // custom URL scheme; initNativeAuth() finishes the PKCE exchange.
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: NATIVE_AUTH_CALLBACK, skipBrowserRedirect: true },
+    })
+    if (error) throw new Error(error.message)
+    if (!data?.url) throw new Error('no authorization URL returned')
+    await Browser.open({ url: data.url })
+    // Settled by the appUrlOpen listener → exchangeCodeForSession →
+    // onAuthStateChange(SIGNED_IN); this promise itself never resolves.
+    return new Promise<Session>(() => {})
+  }
+
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -56,6 +81,27 @@ export async function signInWithGoogleViaBackend(): Promise<Session> {
   // intentionally never settles. The session is picked up after the
   // redirect by restoreBackendSession/onBackendAuthChange.
   return new Promise<Session>(() => {})
+}
+
+/** Native shell only: completes OAuth when the system browser bounces back
+ *  on deepsocial://auth-callback?code=…, and routes QR connect links that
+ *  open the app. Safe to call unconditionally — no-ops on the web. */
+export function initNativeAuth(): void {
+  if (!Capacitor.isNativePlatform()) return
+  void CapApp.addListener('appUrlOpen', async ({ url }) => {
+    if (url.startsWith(NATIVE_AUTH_CALLBACK)) {
+      await Browser.close().catch(() => {})
+      const code = new URL(url).searchParams.get('code')
+      if (!code) return
+      const { error } = await getSupabase().auth.exchangeCodeForSession(code)
+      if (error) console.warn('[auth] native code exchange failed:', error.message)
+      // Success fires onAuthStateChange(SIGNED_IN) — App adopts the session.
+    } else {
+      // Universal/QR links (https://…/#/connect/<id>) reuse the web handler.
+      const m = url.match(/#\/connect\/([0-9a-fA-F-]{36})/)
+      if (m) localStorage.setItem('deep-social.pending-connect', m[1])
+    }
+  })
 }
 
 export async function restoreBackendSession(): Promise<Session | null> {

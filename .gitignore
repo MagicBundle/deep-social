@@ -3,3 +3,9 @@ dist/
 .DS_Store
 *.local
 .claude/settings.local.json
+
+# Capacitor / iOS
+ios/App/Pods/
+ios/App/build/
+ios/App/App/public/
+ios/DerivedData/

@@ -7,11 +7,15 @@ interface Props {
   onClose: () => void
 }
 
+/** The app's public web home — QR links must encode this even when the app
+ *  runs inside the Capacitor shell (where location.origin is capacitor://). */
+export const CANONICAL_ORIGIN = 'https://magicbundle.github.io/deep-social/'
+
 /** In-person handshake: shows a QR that encodes an HTTPS deep link. The other
  *  person points their phone camera at it (no in-app scanner needed) — the OS
  *  opens the link and the app fires a connection request. */
 export function buildConnectLink(userId: string): string {
-  return `${window.location.origin}${import.meta.env.BASE_URL}#/connect/${userId}`
+  return `${CANONICAL_ORIGIN}#/connect/${userId}`
 }
 
 export default function SharePresenceModal({ userId, name, onClose }: Props) {

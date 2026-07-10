@@ -64,5 +64,5 @@ export function clearSession(): void {
 }
 
 export { preloadGoogle }
-export { restoreBackendSession, onBackendAuthChange } from './supabase-auth'
+export { restoreBackendSession, onBackendAuthChange, initNativeAuth } from './supabase-auth'
 export { isBackendConfigured } from '../services/supabase'

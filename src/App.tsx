@@ -10,6 +10,7 @@ import type {
   SocialEvent,
 } from './types'
 import {
+  initNativeAuth,
   isBackendConfigured,
   loadSession,
   onBackendAuthChange,
@@ -173,6 +174,7 @@ export default function App() {
   // session. onBackendAuthChange also clears state on remote sign-out.
   useEffect(() => {
     if (!isBackendConfigured()) return
+    initNativeAuth() // no-op on the web; completes OAuth in the iOS shell
     // After adopting a backend session, pull the user's saved emoji avatar.
     const adopt = (s: Session | null) => {
       setSession(s)
