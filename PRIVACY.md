@@ -5,7 +5,7 @@
 Deep Social is a **hobby project in beta testing**. It is not a commercial
 service. This notice explains, in plain language, what data the app handles
 so you can decide whether to participate. By signing in you consent to the
-processing described here.
+processing described here. See also the [Terms of Use](TERMS.md).
 
 ## What we store when you sign in with Google
 
@@ -28,6 +28,8 @@ processing described here.
 - **Friendships and friend requests** — visible only to the two people
   involved; nobody else can query who is friends with whom.
 - **Chosen avatar emoji and interests**, if you set them.
+- **Your block list** — the users you've blocked. It is visible **only to you**
+  and is **never disclosed to the blocked person** (they aren't told).
 - **"Tonight's vibe"**, if you set one — a single transient tag that expires
   after ~3 hours. It is shown to people nearby, including when you are in
   anonymous Observer mode (it never includes your name or photo). While you
@@ -67,12 +69,17 @@ testing. At any time you can request:
 
 - a copy of your data,
 - correction of your data,
-- **complete deletion** — deleting your account removes your profile, pins,
-  photos, attendance, and friendships in one cascade.
+- **complete deletion** — this is now **self-serve**: profile menu → **Delete
+  account**. It runs a server-side cascade that removes your profile, your event
+  pins, your photos' database records, your attendance, your friendships, and
+  your direct messages. (Photo *files* in storage are cleared manually during
+  beta.)
 
-To exercise any of these, open an issue at
+For a copy or correction of your data — or deletion if you can't sign in — open
+an issue at
 [github.com/MagicBundle/deep-social/issues](https://github.com/MagicBundle/deep-social/issues)
-or contact the repository owner. Requests are handled manually during beta.
+or contact the repository owner. Those requests are handled manually during
+beta, and remember that beta data may be reset at any time regardless.
 
 ## Disclaimer
 

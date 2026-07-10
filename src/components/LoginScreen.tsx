@@ -13,6 +13,12 @@ const PROVIDER_LABEL: Record<Provider, string> = {
   guest: 'guest mode',
 }
 
+const AppleLogo = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M16.36 12.7c0-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.4-.15-2.75.83-3.46.83-.72 0-1.82-.81-3-.79-1.52.02-2.94.9-3.72 2.27-1.6 2.77-.41 6.85 1.13 9.1.76 1.1 1.66 2.33 2.84 2.29 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.78.74 2.98.71 1.24-.02 2.02-1.11 2.77-2.22.88-1.27 1.23-2.51 1.25-2.57-.03-.01-2.39-.92-2.4-3.62zM14.1 5.96c.63-.77 1.06-1.83.94-2.9-.91.04-2.01.61-2.66 1.37-.59.68-1.1 1.77-.96 2.81 1.01.08 2.05-.51 2.68-1.28z" />
+  </svg>
+)
+
 const GoogleLogo = () => (
   <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
     <path fill="#FFC107" d="M43.6 20.5H42V20.4H24v7.2h11.3C33.7 32.4 29.3 35.6 24 35.6c-6.4 0-11.6-5.2-11.6-11.6S17.6 12.4 24 12.4c3 0 5.7 1.1 7.7 3l5.1-5.1C33.5 7.1 29 5.2 24 5.2 13.6 5.2 5.2 13.6 5.2 24S13.6 42.8 24 42.8c10.4 0 18.4-7.6 18.4-18.8 0-1.2-.1-2.4-.4-3.5z" />
@@ -85,6 +91,9 @@ export default function LoginScreen({ onLogin }: Props) {
         </ul>
 
         <div className="login-buttons">
+          <button className="sso-btn apple" onClick={() => handle('apple')}>
+            <AppleLogo /> Continue with Apple <ModeTag provider="apple" />
+          </button>
           <button className="sso-btn google" onClick={() => handle('google')}>
             <GoogleLogo /> Continue with Google <ModeTag provider="google" />
           </button>

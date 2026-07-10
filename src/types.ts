@@ -135,6 +135,15 @@ export interface DirectMessage {
 
 export type FriendState = 'friend' | 'incoming' | 'outgoing'
 
+/** Someone the current user has blocked (only the blocker ever sees this). */
+export interface BlockedUser {
+  userId: string
+  displayName: string
+  avatarUrl?: string
+  avatarEmoji?: string
+  since: string
+}
+
 export interface FriendEntry {
   userId: string
   displayName: string

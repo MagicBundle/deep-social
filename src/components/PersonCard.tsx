@@ -7,6 +7,7 @@ interface Props {
   onConnect: () => void
   onAccept: () => void
   onMessage: () => void
+  onBlock: () => void
   onClose: () => void
 }
 
@@ -19,6 +20,7 @@ export default function PersonCard({
   onConnect,
   onAccept,
   onMessage,
+  onBlock,
   onClose,
 }: Props) {
   const km = (person.distanceM / 1000).toFixed(person.distanceM < 950 ? 1 : 1)
@@ -98,6 +100,10 @@ export default function PersonCard({
           </button>
         )}
       </div>
+
+      <button className="fp-remove pc-block" onClick={onBlock}>
+        Block {person.identified ? (person.displayName ?? 'this member') : 'this person'}
+      </button>
     </div>
   )
 }

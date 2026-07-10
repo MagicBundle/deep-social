@@ -25,7 +25,7 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | Universal search (events / people / interests) in the menu bar, with fly-to | ✅ |
 | Event cards → **Join meetup** → "My meetups" tab | ✅ |
 | Per-event interest chat with simulated participants | ✅ |
-| Social sign-in: **Google (real OAuth** via Supabase — [docs/AUTH.md](docs/AUTH.md)**)** + a no-account demo mode; Apple/Meta planned | ✅ |
+| Social sign-in: **Google & Apple (real OAuth** via Supabase — [docs/AUTH.md](docs/AUTH.md)**)** + a no-account demo mode; Apple needs its provider enabled in the Supabase dashboard, Meta still planned | ✅ |
 | Session persistence (localStorage) + sign-out | ✅ |
 | **Data backbone**: PostGIS schema + RLS, nearby queries, realtime posts, presence — live once a Supabase project is connected ([docs/BACKEND.md](docs/BACKEND.md)) | ✅ code + migration |
 | **Pin your own event**: 📍 button → click the map → composer (activity, title, time) → shared live via Supabase for real sessions, local in demo | ✅ |
@@ -42,6 +42,8 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | **Map layers**: ✨ All / 👥 Friends only / 📍 Events only toggle on the map | ✅ |
 | **Friend profiles**: tap a friend's avatar/name → minimal profile (friends-since, interests, distance, show-on-map, message, remove) | ✅ |
 | **Tonight's vibe ⚡**: a transient tag (3 h TTL) on your presence — shows on beacon profiles *and* anonymous observer dots; Hot Layer heartbeats stream behind the scenes ([docs/HOT-LAYER.md](docs/HOT-LAYER.md) increment 1) | ✅ |
+| **User blocking & reporting**: block from any person card or profile → bidirectional invisibility (map, search, events, messages); report photos from the event card; manage under profile menu → Blocked users | ✅ |
+| **In-app account deletion**: profile menu → Delete account → server-side cascade (profile, pins, photos' records, attendance, friendships, messages); App Store 5.1.1 compliant | ✅ |
 
 ## Architecture
 

@@ -380,6 +380,104 @@ begin
   raise notice 'PASS: vibes visible (beacon + anonymous observer), 3h expiry enforced';
 end $$;
 
+-- ── blocks + account deletion (0010) ────────────────────────────────────
+-- Runs as superuser for cross-user assertions; auth.uid() follows the GUC.
+do $$
+declare ok boolean := false; s text;
+begin
+  -- Setup: Bob & Alice are friends (re-established after earlier removal)
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  perform public.request_friend('00000000-0000-0000-0000-00000000000a');
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  s := public.request_friend('00000000-0000-0000-0000-00000000000b');
+  if s <> 'accepted' then raise exception 'FAIL blocks-setup: friendship not accepted (%)', s; end if;
+
+  -- Alice blocks Bob: friendship severed, Bob invisible to Alice
+  perform public.block_user('00000000-0000-0000-0000-00000000000b');
+  if exists (select 1 from public.friendships
+             where requester_id in ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-00000000000b')
+               and addressee_id in ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-00000000000b'))
+    then raise exception 'FAIL blocks: friendship survived block'; end if;
+  if exists (select 1 from public.nearby_profiles(48.8566, 2.3522, 5000) np
+             where np.lat = 48.8566 and np.lng = 2.365866)
+    then raise exception 'FAIL blocks: blocked user still in nearby'; end if;
+  if exists (select 1 from public.search_members('Bob'))
+    then raise exception 'FAIL blocks: blocked user still in search'; end if;
+
+  -- Enforcement is bidirectional: Bob can't see or re-request Alice
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  if exists (select 1 from public.nearby_profiles(48.8566, 2.3522, 5000) np
+             where np.display_name = 'Alice')
+    then raise exception 'FAIL blocks: blocker still visible to blocked user'; end if;
+  begin
+    perform public.request_friend('00000000-0000-0000-0000-00000000000a');
+  exception when others then
+    if sqlerrm like '%cannot send this request%' then ok := true; end if;
+  end;
+  if not ok then raise exception 'FAIL blocks: blocked user could send a request'; end if;
+
+  -- Alice sees her block list and can unblock
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  if (select count(*) from public.my_blocks()) <> 1
+    then raise exception 'FAIL blocks: my_blocks wrong'; end if;
+  perform public.unblock_user('00000000-0000-0000-0000-00000000000b');
+  if exists (select 1 from public.my_blocks())
+    then raise exception 'FAIL blocks: unblock did not clear'; end if;
+  if not exists (select 1 from public.search_members('Bob'))
+    then raise exception 'FAIL blocks: unblocked user still hidden from search'; end if;
+
+  raise notice 'PASS: block severs friendship, hides both directions, unblock restores';
+end $$;
+
+-- The blocked person must not learn they were blocked (RLS, as the API role).
+do $$
+declare n int;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  perform public.block_user('00000000-0000-0000-0000-00000000000b');
+end $$;
+
+set role authenticated;
+do $$
+declare n int;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  select count(*) into n from public.blocks;
+  if n <> 0 then raise exception 'FAIL blocks: blocked user can see % block rows', n; end if;
+  raise notice 'PASS: blocked user cannot see who blocked them (RLS)';
+end $$;
+reset role;
+
+do $$
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  perform public.unblock_user('00000000-0000-0000-0000-00000000000b');
+end $$;
+
+-- Account deletion: everything cascades.
+do $$
+declare n int;
+begin
+  insert into auth.users (id, email, raw_user_meta_data)
+  values ('00000000-0000-0000-0000-00000000000e', 'eve@example.com', '{"name":"Eve"}');
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e', false);
+  perform public.update_my_location(48.858, 2.351);
+  perform public.create_event_pin('eve pin', 'yoga', 48.858, 2.352);
+  perform public.request_friend('00000000-0000-0000-0000-00000000000a');
+
+  perform public.delete_my_account();
+
+  if exists (select 1 from auth.users where id = '00000000-0000-0000-0000-00000000000e')
+    then raise exception 'FAIL delete: auth user survived'; end if;
+  if exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-00000000000e')
+    then raise exception 'FAIL delete: profile survived'; end if;
+  select count(*) into n from public.posts where title = 'eve pin';
+  if n <> 0 then raise exception 'FAIL delete: posts survived'; end if;
+  if exists (select 1 from public.friendships where requester_id = '00000000-0000-0000-0000-00000000000e')
+    then raise exception 'FAIL delete: friendship survived'; end if;
+  raise notice 'PASS: delete_my_account cascades auth user, profile, pins, friendships';
+end $$;
+
 reset role;
 
 -- ── RLS + column grants (as the API role) ───────────────────────────────

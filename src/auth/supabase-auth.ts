@@ -27,9 +27,10 @@ function displayName(user: User): string {
 }
 
 function mapUser(user: User): Session {
+  const provider = user.app_metadata?.provider === 'apple' ? 'apple' : 'google'
   return {
     name: displayName(user),
-    provider: 'google',
+    provider,
     avatar: '🙂',
     id: user.id,
     email: user.email ?? undefined,
@@ -49,15 +50,15 @@ function syncProfile(user: User): void {
   }).catch((e) => console.warn('[auth] profile sync failed:', e))
 }
 
-export async function signInWithGoogleViaBackend(): Promise<Session> {
+export async function signInWithProviderViaBackend(provider: 'google' | 'apple'): Promise<Session> {
   const supabase = getSupabase()
 
   if (Capacitor.isNativePlatform()) {
-    // Google refuses OAuth inside embedded webviews (disallowed_useragent),
+    // OAuth providers refuse embedded webviews (Google: disallowed_useragent),
     // so the consent flow runs in the system browser and returns via our
     // custom URL scheme; initNativeAuth() finishes the PKCE exchange.
     const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider,
       options: { redirectTo: NATIVE_AUTH_CALLBACK, skipBrowserRedirect: true },
     })
     if (error) throw new Error(error.message)
@@ -75,7 +76,7 @@ export async function signInWithGoogleViaBackend(): Promise<Session> {
   }
 
   const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+    provider,
     options: {
       // Back to exactly where the SPA lives ('/' in dev, '/deep-social/' on
       // Pages). Must be whitelisted in Supabase Auth → URL Configuration.

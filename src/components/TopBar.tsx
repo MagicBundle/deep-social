@@ -43,6 +43,8 @@ interface Props {
   onSetVisibility: (mode: VisibilityMode) => void
   onSetVibe: (vibe: string | null) => void
   onSharePresence: () => void
+  onOpenBlocked: () => void
+  onDeleteAccount: () => void
   onSignOut: () => void
 }
 
@@ -68,6 +70,8 @@ export default function TopBar({
   onSetVisibility,
   onSetVibe,
   onSharePresence,
+  onOpenBlocked,
+  onDeleteAccount,
   onSignOut,
 }: Props) {
   const [query, setQuery] = useState('')
@@ -347,6 +351,28 @@ export default function TopBar({
                   >
                     <span>📡 Share my presence</span>
                     <small>Show a QR to connect in person</small>
+                  </button>
+
+                  <button
+                    className="menu-row"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onOpenBlocked()
+                    }}
+                  >
+                    <span>🚫 Blocked users</span>
+                    <small>Manage who can't see or contact you</small>
+                  </button>
+
+                  <button
+                    className="menu-row menu-danger"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onDeleteAccount()
+                    }}
+                  >
+                    <span>🗑️ Delete account</span>
+                    <small>Permanently erase your data</small>
                   </button>
                 </>
               )}

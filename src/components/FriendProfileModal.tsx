@@ -10,6 +10,7 @@ interface Props {
   onAccept: () => void
   onDecline: () => void
   onRemove: () => void
+  onBlock: () => void
   onClose: () => void
 }
 
@@ -23,6 +24,7 @@ export default function FriendProfileModal({
   onAccept,
   onDecline,
   onRemove,
+  onBlock,
   onClose,
 }: Props) {
   const avatar = friend.avatarEmoji ?? (friend.avatarUrl ? undefined : '👤')
@@ -109,11 +111,16 @@ export default function FriendProfileModal({
           )}
         </div>
 
-        {friend.state === 'friend' && (
-          <button className="fp-remove" onClick={onRemove}>
-            Remove friend
+        <div className="fp-danger">
+          {friend.state === 'friend' && (
+            <button className="fp-remove" onClick={onRemove}>
+              Remove friend
+            </button>
+          )}
+          <button className="fp-remove" onClick={onBlock}>
+            Block {friend.displayName}
           </button>
-        )}
+        </div>
       </div>
     </div>
   )

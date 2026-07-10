@@ -1884,6 +1884,47 @@ strong.identity-link:hover {
   color: #fda4af;
 }
 
+.fp-danger {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}
+
+.pc-block {
+  display: block;
+  margin: 10px 0 0;
+}
+
+.menu-danger span {
+  color: #fda4af;
+}
+
+.btn-delete {
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  background: rgba(244, 63, 94, 0.1);
+  transition: background 0.15s;
+}
+
+.btn-delete:hover {
+  background: rgba(244, 63, 94, 0.2);
+}
+
+.btn-delete.armed {
+  background: var(--live);
+  color: #fff;
+  border-color: var(--live);
+}
+
+.btn-delete:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* ---------- Crash recovery ---------- */
 
 .crash-screen {

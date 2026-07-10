@@ -1,4 +1,5 @@
 import type {
+  BlockedUser,
   ConnectTarget,
   CreateEventPinInput,
   DirectMessage,
@@ -188,30 +189,51 @@ export async function getNearbyPins(
 
 // ─── members & friends ───────────────────────────────────────────────────
 
-/** Search real registered members by display name (case-insensitive). */
+/** Search real registered members by display name. Server-side RPC so the
+ *  block list applies (blocked users are invisible in both directions). */
 export async function searchProfiles(query: string): Promise<ProfileHit[]> {
   const q = query.trim()
   if (q.length < 2) return []
-  const supabase = getSupabase()
-  const [{ data, error }, { data: userData }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, display_name, avatar_url, avatar_emoji, interests')
-      .ilike('display_name', `%${q}%`)
-      .limit(8),
-    supabase.auth.getUser(),
-  ])
+  const { data, error } = await getSupabase().rpc('search_members', { q })
   if (error) fail('searchProfiles', error.message)
-  const myId = userData.user?.id
-  return (data ?? [])
-    .filter((r) => r.id !== myId)
-    .map((r) => ({
-      id: r.id as string,
-      displayName: r.display_name as string,
-      avatarUrl: (r.avatar_url as string | null) ?? undefined,
-      avatarEmoji: (r.avatar_emoji as string | null) ?? undefined,
-      interests: (r.interests as string[]) ?? [],
-    }))
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    displayName: r.display_name as string,
+    avatarUrl: (r.avatar_url as string | null) ?? undefined,
+    avatarEmoji: (r.avatar_emoji as string | null) ?? undefined,
+    interests: (r.interests as string[]) ?? [],
+  }))
+}
+
+// ─── blocking & account deletion (App Store compliance) ──────────────────
+
+export async function blockUser(userId: string): Promise<void> {
+  const { error } = await getSupabase().rpc('block_user', { target: userId })
+  if (error) fail('blockUser', error.message)
+}
+
+export async function unblockUser(userId: string): Promise<void> {
+  const { error } = await getSupabase().rpc('unblock_user', { target: userId })
+  if (error) fail('unblockUser', error.message)
+}
+
+export async function myBlocks(): Promise<BlockedUser[]> {
+  const { data, error } = await getSupabase().rpc('my_blocks')
+  if (error) fail('myBlocks', error.message)
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    userId: r.user_id as string,
+    displayName: r.display_name as string,
+    avatarUrl: (r.avatar_url as string | null) ?? undefined,
+    avatarEmoji: (r.avatar_emoji as string | null) ?? undefined,
+    since: r.since as string,
+  }))
+}
+
+/** Permanently deletes the account server-side (cascades through profile,
+ *  pins, attendance, friendships, DMs, media rows, blocks). */
+export async function deleteMyAccount(): Promise<void> {
+  const { error } = await getSupabase().rpc('delete_my_account')
+  if (error) fail('deleteMyAccount', error.message)
 }
 
 /** Set (or clear with null) the caller's emoji avatar. */

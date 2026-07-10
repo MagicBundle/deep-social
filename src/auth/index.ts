@@ -1,7 +1,7 @@
 import type { Provider, Session } from '../types'
 import { AUTH_CONFIG } from './config'
 import { preloadGoogle, signInWithGoogle } from './google'
-import { signInWithGoogleViaBackend, signOutBackend } from './supabase-auth'
+import { signInWithProviderViaBackend, signOutBackend } from './supabase-auth'
 import { isBackendConfigured } from '../services/supabase'
 
 // Single entry point for authentication. Each provider is either 'live'
@@ -20,13 +20,21 @@ export function providerMode(provider: Provider): ProviderMode {
   if (provider === 'google' && (isBackendConfigured() || AUTH_CONFIG.googleClientId)) {
     return 'live'
   }
+  // Apple routes through Supabase Auth (App Store guideline 4.8); requires
+  // the Apple provider to be configured in the Supabase dashboard.
+  if (provider === 'apple' && isBackendConfigured()) {
+    return 'live'
+  }
   return 'demo'
 }
 
 export async function signIn(provider: Provider): Promise<Session> {
   if (provider === 'google') {
-    if (isBackendConfigured()) return signInWithGoogleViaBackend()
+    if (isBackendConfigured()) return signInWithProviderViaBackend('google')
     if (AUTH_CONFIG.googleClientId) return signInWithGoogle(AUTH_CONFIG.googleClientId)
+  }
+  if (provider === 'apple' && isBackendConfigured()) {
+    return signInWithProviderViaBackend('apple')
   }
   await new Promise((r) => setTimeout(r, MOCK_DELAY_MS))
   return { name: 'Jérôme', provider, avatar: '😎', real: false }

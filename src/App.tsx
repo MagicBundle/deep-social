@@ -21,7 +21,9 @@ import {
 import { CHAT_REPLIES, CHAT_SEEDS, CITY_CENTER, interestFor } from './data/mock'
 import {
   addVibe,
+  blockUser,
   createEventPin,
+  deleteMyAccount,
   dmUnreadCounts,
   getConnectTarget,
   getMyAvatarEmoji,
@@ -58,6 +60,8 @@ import SharePresenceModal from './components/SharePresenceModal'
 import DeepCard, { type ConnectOutcome } from './components/DeepCard'
 import PersonCard from './components/PersonCard'
 import FriendProfileModal from './components/FriendProfileModal'
+import BlockedUsersModal from './components/BlockedUsersModal'
+import DeleteAccountModal from './components/DeleteAccountModal'
 import type { ConnectTarget, MapLayer, NearbyProfile, VisibilityMode } from './types'
 
 interface Toast {
@@ -126,6 +130,8 @@ export default function App() {
   const [personId, setPersonId] = useState<string | null>(null)
   const [mapLayer, setMapLayer] = useState<MapLayer>('both')
   const [profileFriend, setProfileFriend] = useState<FriendEntry | null>(null)
+  const [blockedOpen, setBlockedOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   /** position confirmed by device geolocation (never the demo default) */
   const [locatedPos, setLocatedPos] = useState<{ lat: number; lng: number } | null>(null)
   const [deepCard, setDeepCard] = useState<{
@@ -486,6 +492,29 @@ export default function App() {
       .catch(() => toast('Could not remove, try again'))
   }
 
+  const handleBlockUser = (userId: string, name?: string) => {
+    // Close every surface that could be showing them, hide optimistically,
+    // then let server truth reconcile on the next fetches.
+    setPersonId(null)
+    setProfileFriend(null)
+    setDmFriend(null)
+    setNearbyPeople((prev) => prev.filter((p) => p.id !== userId))
+    blockUser(userId)
+      .then(() => {
+        toast(`${name ?? 'User'} blocked — they can no longer see or contact you`)
+        refreshFriends()
+      })
+      .catch(() => toast('Could not block — is migration 0010 applied?'))
+  }
+
+  const handleDeleteAccount = async () => {
+    await deleteMyAccount()
+    setDeleteOpen(false)
+    await signOutEverywhere()
+    setSession(null)
+    toast('Your account and data have been deleted')
+  }
+
   // Esc exits pin-drop mode / closes the composer
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -828,6 +857,8 @@ export default function App() {
         onSetVisibility={handleSetVisibility}
         onSetVibe={handleSetVibe}
         onSharePresence={() => setShareOpen(true)}
+        onOpenBlocked={() => setBlockedOpen(true)}
+        onDeleteAccount={() => setDeleteOpen(true)}
         onSignOut={handleSignOut}
       />
 
@@ -972,6 +1003,7 @@ export default function App() {
             setProfileFriend(null)
             handleRemoveFriend(profileFriend.userId)
           }}
+          onBlock={() => handleBlockUser(profileFriend.userId, profileFriend.displayName)}
           onClose={() => setProfileFriend(null)}
         />
       )}
@@ -983,8 +1015,15 @@ export default function App() {
           onConnect={() => handlePersonConnect(selectedPerson)}
           onAccept={() => handleRespondFriend(selectedPerson.id, true)}
           onMessage={() => handlePersonMessage(selectedPerson)}
+          onBlock={() => handleBlockUser(selectedPerson.id, selectedPerson.displayName)}
           onClose={() => setPersonId(null)}
         />
+      )}
+
+      {blockedOpen && <BlockedUsersModal onNotify={toast} onClose={() => setBlockedOpen(false)} />}
+
+      {deleteOpen && (
+        <DeleteAccountModal onConfirm={handleDeleteAccount} onClose={() => setDeleteOpen(false)} />
       )}
 
       {shareOpen && session?.id && (

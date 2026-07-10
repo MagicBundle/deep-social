@@ -8,7 +8,7 @@ which mode they're in. Sessions persist in `localStorage` either way.
 | --- | --- | --- |
 | Google | **Live** (client id configured; routes through Supabase Auth) | Steps below |
 | Guest | Demo mode (local simulation, nothing persisted) | — |
-| Apple | Planned — button removed from the UI until real | Apple Developer Program ($99/yr), Services ID, domain verification; enable as a Supabase Auth provider |
+| Apple | **Live once configured** (routes through Supabase Auth, same as Google) | Apple Developer Program ($99/yr), a Services ID + Sign in with Apple key, and the Apple provider enabled in the Supabase dashboard — steps below |
 | Meta | Planned — button removed from the UI until real | Facebook developer app + app review; enable as a Supabase Auth provider |
 
 ## Go live with Google
@@ -40,6 +40,28 @@ consent popup), so it works on GitHub Pages with no server and no secret.
 
 That's it: the Google button switches from `demo` to `live`, opens the real
 consent popup, and the session carries your actual name, email, and photo.
+
+## Go live with Apple
+
+Apple sign-in is wired the same way as Google — it delegates to Supabase Auth,
+and `src/auth/index.ts` already routes it. All that's left is provider setup:
+
+1. **Apple Developer portal** → create a **Services ID** (this is your web
+   client id) and a **Sign in with Apple key** (download the `.p8` private key;
+   note its **Key ID** and your **Team ID**).
+2. **Supabase dashboard** → **Authentication → Providers → Apple** → enable it
+   and enter the **Services ID**, **Team ID**, **Key ID**, and the **private
+   key**.
+3. Back in the **Services ID**, add the Supabase callback URL to its **return
+   URLs**:
+
+   ```
+   https://liaiodfhlnwnzplrtdfk.supabase.co/auth/v1/callback
+   ```
+
+That's it — the Apple button goes live. On iOS the app opens the flow in the
+**system browser** and returns via the **`deepsocial://`** deep-link scheme,
+exactly like Google.
 
 ## Security notes
 
