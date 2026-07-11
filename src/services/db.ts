@@ -4,6 +4,9 @@ import type {
   CreateEventPinInput,
   DirectMessage,
   FriendEntry,
+  GuardianSession,
+  GuardianStatus,
+  HistoryEvent,
   FriendState,
   MyProfile,
   NearbyProfile,
@@ -340,6 +343,88 @@ export async function dmUnreadCounts(): Promise<Record<string, number>> {
   const out: Record<string, number> = {}
   for (const r of data ?? []) out[r.friend_id as string] = r.unread as number
   return out
+}
+
+// ─── constellation & guardian mode ───────────────────────────────────────
+
+/** The caller's own attendance history, past events included. */
+export async function myEventHistory(): Promise<HistoryEvent[]> {
+  const { data, error } = await getSupabase().rpc('my_event_history')
+  if (error) fail('myEventHistory', error.message)
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    title: r.title as string,
+    category: r.category as string,
+    venue: (r.venue as string | null) ?? undefined,
+    authorName: (r.author_name as string | null) ?? undefined,
+    startsAt: r.starts_at as string,
+    durationMin: r.duration_min as number,
+    lat: r.lat as number,
+    lng: r.lng as number,
+    joinedAt: r.joined_at as string,
+  }))
+}
+
+/** Count of the caller's own vibe photos (Constellation stat). */
+export async function myMediaCount(): Promise<number> {
+  const supabase = getSupabase()
+  const uid = (await supabase.auth.getUser()).data.user?.id
+  if (!uid) return 0
+  const { count, error } = await supabase
+    .from('media_attachments')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', uid)
+  if (error) fail('myMediaCount', error.message)
+  return count ?? 0
+}
+
+export async function startGuardian(
+  guardianId: string,
+  minutes: number,
+  note?: string,
+): Promise<string> {
+  const { data, error } = await getSupabase().rpc('start_guardian', {
+    guardian: guardianId,
+    minutes,
+    note: note ?? null,
+  })
+  if (error) fail('startGuardian', error.message)
+  return data as string
+}
+
+export async function endGuardian(sessionId: string, safe: boolean): Promise<void> {
+  const { error } = await getSupabase().rpc('end_guardian', { session_id: sessionId, safe })
+  if (error) fail('endGuardian', error.message)
+}
+
+export async function myGuardianSessions(): Promise<GuardianSession[]> {
+  const { data, error } = await getSupabase().rpc('my_guardian_sessions')
+  if (error) fail('myGuardianSessions', error.message)
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    role: r.role as 'protege' | 'guardian',
+    otherId: r.other_id as string,
+    otherName: r.other_name as string,
+    otherAvatarUrl: (r.other_avatar_url as string | null) ?? undefined,
+    otherAvatarEmoji: (r.other_avatar_emoji as string | null) ?? undefined,
+    note: (r.note as string | null) ?? undefined,
+    status: r.status as GuardianStatus,
+    startedAt: r.started_at as string,
+    endsAt: r.ends_at as string,
+  }))
+}
+
+/** Fires on any change to the caller's guardian sessions (RLS-scoped). */
+export function subscribeToGuardianSessions(onChange: () => void): () => void {
+  const channel = getSupabase()
+    .channel(`guardian-feed-${crypto.randomUUID()}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'guardian_sessions' }, () =>
+      onChange(),
+    )
+    .subscribe()
+  return () => {
+    void channel.unsubscribe()
+  }
 }
 
 // ─── Hot Layer: heartbeats (increment 1) ─────────────────────────────────

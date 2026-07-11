@@ -43,6 +43,8 @@ interface Props {
   onSetVisibility: (mode: VisibilityMode) => void
   onSetVibe: (vibe: string | null) => void
   onSharePresence: () => void
+  onOpenConstellation: () => void
+  onOpenGuardian: () => void
   onOpenBlocked: () => void
   onDeleteAccount: () => void
   onSignOut: () => void
@@ -70,6 +72,8 @@ export default function TopBar({
   onSetVisibility,
   onSetVibe,
   onSharePresence,
+  onOpenConstellation,
+  onOpenGuardian,
   onOpenBlocked,
   onDeleteAccount,
   onSignOut,
@@ -351,6 +355,28 @@ export default function TopBar({
                   >
                     <span>📡 Share my presence</span>
                     <small>Show a QR to connect in person</small>
+                  </button>
+
+                  <button
+                    className="menu-row"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onOpenConstellation()
+                    }}
+                  >
+                    <span>🌌 Constellation</span>
+                    <small>Your city as memory — private</small>
+                  </button>
+
+                  <button
+                    className="menu-row"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onOpenGuardian()
+                    }}
+                  >
+                    <span>🛡️ Guardian mode</span>
+                    <small>A friend watches over your meetup</small>
                   </button>
 
                   <button

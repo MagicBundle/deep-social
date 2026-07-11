@@ -454,6 +454,63 @@ begin
   perform public.unblock_user('00000000-0000-0000-0000-00000000000b');
 end $$;
 
+-- ── constellation history + guardian mode (0011) ────────────────────────
+do $$
+declare h record; sid uuid; n int; ok boolean := false; s text;
+begin
+  -- History: Alice attended the sunset-run pin (auto-join at creation)
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  select * into h from public.my_event_history() limit 1;
+  if h is null then raise exception 'FAIL history: no rows for attendee'; end if;
+  if h.lat is null or h.lng is null then raise exception 'FAIL history: coords missing'; end if;
+  select count(*) into n from public.my_event_history() me where me.title = 'Sunset run — river loop';
+  if n <> 1 then raise exception 'FAIL history: expected the sunset-run pin'; end if;
+
+  -- Guardian: needs an accepted friendship (Bob<->Alice re-established in
+  -- the blocks test flow: block severed it, so re-friend here)
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  perform public.request_friend('00000000-0000-0000-0000-00000000000a');
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  s := public.request_friend('00000000-0000-0000-0000-00000000000b');
+  if s <> 'accepted' then raise exception 'FAIL guardian-setup: friendship % ', s; end if;
+
+  -- Alice starts a session with Bob as guardian
+  sid := public.start_guardian('00000000-0000-0000-0000-00000000000b', 120, 'Meetup at the river');
+  if (select gs.status from public.my_guardian_sessions() gs where gs.id = sid) <> 'active'
+    then raise exception 'FAIL guardian: session not active'; end if;
+  if (select gs.role from public.my_guardian_sessions() gs where gs.id = sid) <> 'protege'
+    then raise exception 'FAIL guardian: protege role wrong'; end if;
+
+  -- Bob sees it from the guardian side
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  if (select gs.role from public.my_guardian_sessions() gs where gs.id = sid) <> 'guardian'
+    then raise exception 'FAIL guardian: guardian role wrong'; end if;
+  if (select gs.other_name from public.my_guardian_sessions() gs where gs.id = sid) <> 'Alice'
+    then raise exception 'FAIL guardian: counterpart name wrong'; end if;
+
+  -- Only the protégé can change status; SOS then safe
+  perform public.end_guardian(sid, false); -- Bob tries: silently 0 rows
+  if (select status from public.guardian_sessions where id = sid) <> 'active'
+    then raise exception 'FAIL guardian: guardian could change status'; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  perform public.end_guardian(sid, false);
+  if (select status from public.guardian_sessions where id = sid) <> 'alarm'
+    then raise exception 'FAIL guardian: SOS not recorded'; end if;
+  perform public.end_guardian(sid, true);
+  if (select status from public.guardian_sessions where id = sid) <> 'safe'
+    then raise exception 'FAIL guardian: safe not recorded'; end if;
+
+  -- Non-friend cannot be a guardian
+  begin
+    perform public.start_guardian('00000000-0000-0000-0000-00000000000c', 60);
+  exception when others then
+    if sqlerrm like '%accepted friend%' then ok := true; end if;
+  end;
+  if not ok then raise exception 'FAIL guardian: non-friend accepted as guardian'; end if;
+
+  raise notice 'PASS: event history + guardian lifecycle (roles, SOS/safe, friend gate)';
+end $$;
+
 -- Account deletion: everything cascades.
 do $$
 declare n int;

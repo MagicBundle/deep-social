@@ -25,7 +25,12 @@ import {
   createEventPin,
   deleteMyAccount,
   dmUnreadCounts,
+  endGuardian,
   getConnectTarget,
+  myGuardianSessions,
+  sendDm,
+  startGuardian,
+  subscribeToGuardianSessions,
   getMyAvatarEmoji,
   getMyProfile,
   getNearbyPins,
@@ -62,6 +67,10 @@ import PersonCard from './components/PersonCard'
 import FriendProfileModal from './components/FriendProfileModal'
 import BlockedUsersModal from './components/BlockedUsersModal'
 import DeleteAccountModal from './components/DeleteAccountModal'
+import ConstellationModal from './components/ConstellationModal'
+import GuardianModal from './components/GuardianModal'
+import GuardianBar from './components/GuardianBar'
+import type { GuardianSession } from './types'
 import type { ConnectTarget, MapLayer, NearbyProfile, VisibilityMode } from './types'
 
 interface Toast {
@@ -132,6 +141,10 @@ export default function App() {
   const [profileFriend, setProfileFriend] = useState<FriendEntry | null>(null)
   const [blockedOpen, setBlockedOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [constellationOpen, setConstellationOpen] = useState(false)
+  const [guardianOpen, setGuardianOpen] = useState(false)
+  const [guardianSessions, setGuardianSessions] = useState<GuardianSession[]>([])
+  const [dismissedGuardianIds, setDismissedGuardianIds] = useState<Set<string>>(new Set())
   /** position confirmed by device geolocation (never the demo default) */
   const [locatedPos, setLocatedPos] = useState<{ lat: number; lng: number } | null>(null)
   const [deepCard, setDeepCard] = useState<{
@@ -541,6 +554,71 @@ export default function App() {
     toast('Your account and data have been deleted')
   }
 
+  // Guardian sessions: load + realtime + a 1-min tick so overdue warnings
+  // appear on the guardian's side even without new events.
+  const refreshGuardians = () => {
+    myGuardianSessions()
+      .then(setGuardianSessions)
+      .catch((e) => console.warn('[guardian] fetch failed:', e))
+  }
+  useEffect(() => {
+    if (!backendLive) return
+    refreshGuardians()
+    const unsub = subscribeToGuardianSessions(refreshGuardians)
+    const t = setInterval(() => setGuardianSessions((s) => [...s]), 60_000)
+    return () => {
+      unsub()
+      clearInterval(t)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backendLive])
+
+  const handleStartGuardian = async (guardian: FriendEntry, minutes: number, note: string) => {
+    await startGuardian(guardian.userId, minutes, note || undefined)
+    setGuardianOpen(false)
+    const until = new Date(Date.now() + minutes * 60_000).toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    sendDm(
+      guardian.userId,
+      `🛡️ I've asked you to watch over me until ${until}. You can see me live on the map.${note ? ` Where I'm headed: ${note}` : ''}`,
+    ).catch(() => {})
+    refreshGuardians()
+    toast(`${guardian.displayName} is watching over you until ${until} 🛡️`)
+  }
+
+  const handleGuardianSafe = (s: GuardianSession) => {
+    endGuardian(s.id, true)
+      .then(() => {
+        sendDm(s.otherId, "✅ I'm safe — guardian mode ended. Thanks for watching over me!").catch(
+          () => {},
+        )
+        refreshGuardians()
+        toast('Checked in safe ✓')
+      })
+      .catch(() => toast('Could not check in — try again'))
+  }
+
+  const handleGuardianSOS = (s: GuardianSession) => {
+    const pos = locatedPos
+      ? ` Last position: https://maps.google.com/?q=${locatedPos.lat.toFixed(5)},${locatedPos.lng.toFixed(5)}`
+      : ''
+    endGuardian(s.id, false)
+      .then(() => {
+        sendDm(s.otherId, `🚨 ALERT — I need help.${pos}`).catch(() => {})
+        refreshGuardians()
+        toast(`Alert sent to ${s.otherName} 🚨`)
+      })
+      .catch(() => toast('Could not send the alert — call them directly'))
+  }
+
+  const handleGuardianLocate = (s: GuardianSession) => {
+    const p = nearbyPeople.find((np) => np.id === s.otherId)
+    if (p) selectPerson(p.id)
+    else toast(`${s.otherName} isn't sharing a live position right now — check your messages`)
+  }
+
   // Esc exits pin-drop mode / closes the composer
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -883,9 +961,19 @@ export default function App() {
         onSetVisibility={handleSetVisibility}
         onSetVibe={handleSetVibe}
         onSharePresence={() => setShareOpen(true)}
+        onOpenConstellation={() => setConstellationOpen(true)}
+        onOpenGuardian={() => setGuardianOpen(true)}
         onOpenBlocked={() => setBlockedOpen(true)}
         onDeleteAccount={() => setDeleteOpen(true)}
         onSignOut={handleSignOut}
+      />
+
+      <GuardianBar
+        sessions={guardianSessions.filter((s) => !dismissedGuardianIds.has(s.id))}
+        onSafe={handleGuardianSafe}
+        onSOS={handleGuardianSOS}
+        onLocate={handleGuardianLocate}
+        onDismiss={(id) => setDismissedGuardianIds((prev) => new Set(prev).add(id))}
       />
 
       {/* Mobile-only: glassy horizontal filter bar over the map (the same
@@ -1047,6 +1135,26 @@ export default function App() {
       )}
 
       {blockedOpen && <BlockedUsersModal onNotify={toast} onClose={() => setBlockedOpen(false)} />}
+
+      {constellationOpen && (
+        <ConstellationModal
+          friends={friends}
+          onFlyTo={(lat, lng) => {
+            setConstellationOpen(false)
+            flyTo(lat, lng, 15)
+          }}
+          onNotify={toast}
+          onClose={() => setConstellationOpen(false)}
+        />
+      )}
+
+      {guardianOpen && (
+        <GuardianModal
+          friends={friends}
+          onStart={handleStartGuardian}
+          onClose={() => setGuardianOpen(false)}
+        />
+      )}
 
       {deleteOpen && (
         <DeleteAccountModal onConfirm={handleDeleteAccount} onClose={() => setDeleteOpen(false)} />

@@ -1943,6 +1943,138 @@ strong.identity-link:hover {
   cursor: default;
 }
 
+/* ---------- Constellation & guardian mode ---------- */
+
+.avatar-dropdown {
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+}
+
+.constellation {
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+
+.cons-stats {
+  display: flex;
+  gap: 10px;
+  margin: 4px 0 10px;
+}
+
+.cons-stats > div {
+  flex: 1;
+  text-align: center;
+  padding: 10px 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.cons-stats strong {
+  display: block;
+  font-size: 20px;
+}
+
+.cons-stats small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.selected-guardian {
+  border: 1px solid var(--brand-b);
+  background: color-mix(in srgb, var(--brand-b) 12%, transparent);
+}
+
+.guardian-bar {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1060;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.guardian-pill {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 99px;
+  font-size: 12.5px;
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+
+.guardian-pill.mine {
+  border-color: color-mix(in srgb, var(--brand-b) 55%, transparent);
+}
+
+.guardian-pill.watching {
+  color: var(--muted);
+}
+
+.guardian-pill.overdue {
+  border-color: rgba(251, 191, 36, 0.6);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.guardian-pill.alarm {
+  border-color: var(--live);
+  background: rgba(244, 63, 94, 0.15);
+  animation: blink 1.2s ease infinite;
+}
+
+.gp-safe {
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid rgba(74, 222, 128, 0.5);
+  color: #4ade80;
+  font-size: 12px;
+}
+
+.gp-safe:hover {
+  background: rgba(74, 222, 128, 0.15);
+}
+
+.gp-sos {
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid rgba(244, 63, 94, 0.5);
+  color: #fda4af;
+  font-size: 12px;
+}
+
+.gp-sos.armed {
+  background: var(--live);
+  color: #fff;
+  font-weight: 700;
+}
+
+.gp-dismiss {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 0 2px;
+}
+
+@media (max-width: 700px) {
+  .guardian-bar {
+    top: calc(158px + env(safe-area-inset-top));
+    width: 96vw;
+  }
+
+  .guardian-pill {
+    white-space: normal;
+    font-size: 12px;
+  }
+}
+
 /* ---------- Crash recovery ---------- */
 
 .crash-screen {

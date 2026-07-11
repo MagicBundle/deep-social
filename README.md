@@ -44,6 +44,9 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | **Tonight's vibe ⚡**: a transient tag (3 h TTL) on your presence — shows on beacon profiles *and* anonymous observer dots; Hot Layer heartbeats stream behind the scenes ([docs/HOT-LAYER.md](docs/HOT-LAYER.md) increment 1) | ✅ |
 | **User blocking & reporting**: block from any person card or profile → bidirectional invisibility (map, search, events, messages); report photos from the event card; manage under profile menu → Blocked users | ✅ |
 | **In-app account deletion**: profile menu → Delete account → server-side cascade (profile, pins, photos' records, attendance, friendships, messages); App Store 5.1.1 compliant | ✅ |
+| **Calendar + sharing**: 📅 one-tap ICS export on every event; 📤 share via the native sheet or WhatsApp — links unfurl as rich cards and deep-link back onto the map | ✅ |
+| **Constellation 🌌**: your private city-memory — every meetup joined, friend made, photo posted, with monthly recap sharing | ✅ |
+| **Guardian mode 🛡️**: a friend watches over your meetup — live position, start/safe/SOS messages, overdue check-in warnings | ✅ |
 
 ## Architecture
 

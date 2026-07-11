@@ -135,6 +135,36 @@ export interface DirectMessage {
 
 export type FriendState = 'friend' | 'incoming' | 'outgoing'
 
+/** One entry of the user's own attendance history (Constellation). */
+export interface HistoryEvent {
+  id: string
+  title: string
+  category: string
+  venue?: string
+  authorName?: string
+  startsAt: string
+  durationMin: number
+  lat: number
+  lng: number
+  joinedAt: string
+}
+
+export type GuardianStatus = 'active' | 'safe' | 'alarm'
+
+/** A guardian-mode session, seen from either side. */
+export interface GuardianSession {
+  id: string
+  role: 'protege' | 'guardian'
+  otherId: string
+  otherName: string
+  otherAvatarUrl?: string
+  otherAvatarEmoji?: string
+  note?: string
+  status: GuardianStatus
+  startedAt: string
+  endsAt: string
+}
+
 /** Someone the current user has blocked (only the blocker ever sees this). */
 export interface BlockedUser {
   userId: string
