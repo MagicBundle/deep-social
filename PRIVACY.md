@@ -30,6 +30,9 @@ processing described here. See also the [Terms of Use](TERMS.md).
 - **Chosen avatar emoji and interests**, if you set them.
 - **Your block list** — the users you've blocked. It is visible **only to you**
   and is **never disclosed to the blocked person** (they aren't told).
+- **A device push token**, if you use the iOS app and allow notifications —
+  an anonymous identifier from Apple used only to deliver your own alerts
+  (friend requests, messages, guardian check-ins). It is removed on sign-out.
 - **"Tonight's vibe"**, if you set one — a single transient tag that expires
   after ~3 hours. It is shown to people nearby, including when you are in
   anonymous Observer mode (it never includes your name or photo). While you

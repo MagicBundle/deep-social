@@ -511,6 +511,59 @@ begin
   raise notice 'PASS: event history + guardian lifecycle (roles, SOS/safe, friend gate)';
 end $$;
 
+-- ── push tokens (0012) ──────────────────────────────────────────────────
+do $$
+begin
+  -- Alice registers a device token; idempotent re-register keeps one row
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  perform public.register_push_token('tok-1', 'ios');
+  perform public.register_push_token('tok-1', 'ios');
+  if (select count(*) from public.device_push_tokens where token = 'tok-1') <> 1
+    then raise exception 'FAIL push: token not idempotent'; end if;
+  if (select user_id from public.device_push_tokens where token = 'tok-1')
+     <> '00000000-0000-0000-0000-00000000000a'
+    then raise exception 'FAIL push: token owner wrong'; end if;
+
+  -- Device changes hands: Bob signs in, same token reassigns to him
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  perform public.register_push_token('tok-1', 'ios');
+  if (select user_id from public.device_push_tokens where token = 'tok-1')
+     <> '00000000-0000-0000-0000-00000000000b'
+    then raise exception 'FAIL push: token did not reassign to new owner'; end if;
+
+  -- Alice can no longer unregister Bob's token
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  perform public.unregister_push_token('tok-1');
+  if not exists (select 1 from public.device_push_tokens where token = 'tok-1')
+    then raise exception 'FAIL push: wrong user unregistered a token'; end if;
+
+  -- Bob unregisters his own
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  perform public.unregister_push_token('tok-1');
+  if exists (select 1 from public.device_push_tokens where token = 'tok-1')
+    then raise exception 'FAIL push: unregister failed'; end if;
+  raise notice 'PASS: push token register/reassign/unregister';
+end $$;
+
+-- Tokens are private (RLS, as the API role).
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  perform public.register_push_token('tok-secret', 'ios');
+end $$;
+set role authenticated;
+do $$
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  if exists (select 1 from public.device_push_tokens where token = 'tok-secret')
+    then raise exception 'FAIL push: another user can read your device token'; end if;
+  raise notice 'PASS: device tokens are private to their owner';
+end $$;
+reset role;
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  perform public.unregister_push_token('tok-secret');
+end $$;
+
 -- Account deletion: everything cascades.
 do $$
 declare n int;

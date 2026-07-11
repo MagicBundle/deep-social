@@ -71,6 +71,7 @@ import ConstellationModal from './components/ConstellationModal'
 import GuardianModal from './components/GuardianModal'
 import GuardianBar from './components/GuardianBar'
 import { neutralMapsLink, openDirections } from './services/navigation'
+import { registerPush, unregisterPush, type PushTap } from './services/push'
 import type { GuardianSession } from './types'
 import type { ConnectTarget, MapLayer, NearbyProfile, VisibilityMode } from './types'
 
@@ -161,6 +162,8 @@ export default function App() {
   }
   const worldRef = useRef(displayWorld)
   worldRef.current = displayWorld
+  const friendsRef = useRef<FriendEntry[]>([])
+  friendsRef.current = friends
   const backendLive = isBackendConfigured() && Boolean(session?.real)
 
   const toast = (text: string) => {
@@ -185,9 +188,30 @@ export default function App() {
   }
 
   const handleSignOut = () => {
+    void unregisterPush()
     void signOutEverywhere()
     setSession(null)
   }
+
+  // Native push: register once we have a real session; route notification
+  // taps into the app. No-ops on web / simulator. Send side is an Edge
+  // Function added once the APNs key exists.
+  useEffect(() => {
+    if (!backendLive) return
+    const onTap = (data: PushTap) => {
+      if (data.type === 'dm' && data.friendId) {
+        const f = friendsRef.current.find((x) => x.userId === data.friendId)
+        if (f) setDmFriend(f)
+      } else if (data.type === 'friend') {
+        setTab('friends')
+        setSheetSignal((n) => n + 1)
+      } else if (data.type === 'guardian') {
+        refreshGuardians()
+      }
+    }
+    void registerPush(onTap)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backendLive])
 
   // Backend session bootstrap: after the Supabase OAuth redirect (or on any
   // later visit while the Supabase session is valid), adopt it as the app
