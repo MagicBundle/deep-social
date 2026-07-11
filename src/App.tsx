@@ -70,6 +70,7 @@ import DeleteAccountModal from './components/DeleteAccountModal'
 import ConstellationModal from './components/ConstellationModal'
 import GuardianModal from './components/GuardianModal'
 import GuardianBar from './components/GuardianBar'
+import { neutralMapsLink, openDirections } from './services/navigation'
 import type { GuardianSession } from './types'
 import type { ConnectTarget, MapLayer, NearbyProfile, VisibilityMode } from './types'
 
@@ -613,6 +614,17 @@ export default function App() {
       .catch(() => toast('Could not send the alert — call them directly'))
   }
 
+  // Directions hand-off to Apple/Google Maps. If a guardian is watching,
+  // they get told where you're headed — the destination + a neutral link.
+  const handleNavigate = (lat: number, lng: number, label: string) => {
+    openDirections(lat, lng)
+    toast(`Opening walking directions to ${label} 🧭`)
+    const g = guardianSessions.find((s) => s.role === 'protege' && s.status === 'active')
+    if (g) {
+      sendDm(g.otherId, `🧭 Heading to ${label} — ${neutralMapsLink(lat, lng)}`).catch(() => {})
+    }
+  }
+
   const handleGuardianLocate = (s: GuardianSession) => {
     const p = nearbyPeople.find((np) => np.id === s.otherId)
     if (p) selectPerson(p.id)
@@ -1068,6 +1080,7 @@ export default function App() {
           onJoin={() => handleJoin(selectedEvent.id)}
           onChat={() => openChat(selectedEvent.id)}
           onVibeCheck={() => setVibeFor(selectedEvent.id)}
+          onNavigate={handleNavigate}
           onNotify={toast}
           onClose={() => setSelectedEventId(null)}
         />
@@ -1105,6 +1118,10 @@ export default function App() {
             setProfileFriend(null)
             selectPerson(profileFriend.userId)
           }}
+          onNavigate={(lat, lng, label) => {
+            setProfileFriend(null)
+            handleNavigate(lat, lng, label)
+          }}
           onAccept={() => {
             setProfileFriend(null)
             handleRespondFriend(profileFriend.userId, true)
@@ -1129,6 +1146,7 @@ export default function App() {
           onConnect={() => handlePersonConnect(selectedPerson)}
           onAccept={() => handleRespondFriend(selectedPerson.id, true)}
           onMessage={() => handlePersonMessage(selectedPerson)}
+          onNavigate={handleNavigate}
           onBlock={() => handleBlockUser(selectedPerson.id, selectedPerson.displayName)}
           onClose={() => setPersonId(null)}
         />

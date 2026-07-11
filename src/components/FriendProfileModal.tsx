@@ -7,6 +7,7 @@ interface Props {
   nearby: NearbyProfile | null
   onMessage: () => void
   onShowOnMap: () => void
+  onNavigate: (lat: number, lng: number, label: string) => void
   onAccept: () => void
   onDecline: () => void
   onRemove: () => void
@@ -21,6 +22,7 @@ export default function FriendProfileModal({
   nearby,
   onMessage,
   onShowOnMap,
+  onNavigate,
   onAccept,
   onDecline,
   onRemove,
@@ -87,6 +89,14 @@ export default function FriendProfileModal({
               {nearby && (
                 <button className="btn-chat" onClick={onShowOnMap}>
                   📍 Show on map
+                </button>
+              )}
+              {nearby && (
+                <button
+                  className="btn-chat"
+                  onClick={() => onNavigate(nearby.lat, nearby.lng, friend.displayName)}
+                >
+                  🧭 Directions
                 </button>
               )}
               <button className="btn-join" onClick={onMessage}>

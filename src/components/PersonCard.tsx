@@ -7,6 +7,7 @@ interface Props {
   onConnect: () => void
   onAccept: () => void
   onMessage: () => void
+  onNavigate: (lat: number, lng: number, label: string) => void
   onBlock: () => void
   onClose: () => void
 }
@@ -20,10 +21,11 @@ export default function PersonCard({
   onConnect,
   onAccept,
   onMessage,
+  onNavigate,
   onBlock,
   onClose,
 }: Props) {
-  const km = (person.distanceM / 1000).toFixed(person.distanceM < 950 ? 1 : 1)
+  const km = (person.distanceM / 1000).toFixed(1)
   const modeLabel = person.isFriend
     ? 'Friend'
     : person.identified
@@ -82,6 +84,22 @@ export default function PersonCard({
       )}
 
       <div className="card-foot pc-foot">
+        <button
+          className="icon-btn"
+          title={person.identified ? 'Walking directions' : 'Directions to their approximate area'}
+          aria-label="Get directions"
+          onClick={() =>
+            onNavigate(
+              person.lat,
+              person.lng,
+              person.identified
+                ? (person.displayName ?? 'this member')
+                : 'their approximate area',
+            )
+          }
+        >
+          🧭
+        </button>
         {friendState === 'friend' ? (
           <button className="btn-join" onClick={onMessage}>
             💬 Message

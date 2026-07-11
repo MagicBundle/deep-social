@@ -47,6 +47,7 @@ Sign in with any of the social buttons (mocked locally — see below) or as gues
 | **Calendar + sharing**: 📅 one-tap ICS export on every event; 📤 share via the native sheet or WhatsApp — links unfurl as rich cards and deep-link back onto the map | ✅ |
 | **Constellation 🌌**: your private city-memory — every meetup joined, friend made, photo posted, with monthly recap sharing | ✅ |
 | **Guardian mode 🛡️**: a friend watches over your meetup — live position, start/safe/SOS messages, overdue check-in warnings | ✅ |
+| **Directions 🧭**: one tap from any event, person, or friend to walking directions in Apple/Google Maps (observers route to their approximate area); active guardians are told where you're headed | ✅ |
 
 ## Architecture
 

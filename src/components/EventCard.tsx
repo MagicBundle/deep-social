@@ -14,6 +14,7 @@ interface Props {
   onJoin: () => void
   onChat: () => void
   onVibeCheck: () => void
+  onNavigate: (lat: number, lng: number, label: string) => void
   onNotify: (text: string) => void
   onClose: () => void
 }
@@ -26,6 +27,7 @@ export default function EventCard({
   onJoin,
   onChat,
   onVibeCheck,
+  onNavigate,
   onNotify,
   onClose,
 }: Props) {
@@ -126,6 +128,14 @@ export default function EventCard({
             }}
           >
             📅
+          </button>
+          <button
+            className="icon-btn"
+            title="Walking directions"
+            aria-label="Get directions"
+            onClick={() => onNavigate(event.lat, event.lng, event.title)}
+          >
+            🧭
           </button>
           <button
             className="icon-btn"
