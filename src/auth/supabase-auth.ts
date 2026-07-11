@@ -116,6 +116,8 @@ export function initNativeAuth(): void {
       // Universal/QR links (https://…/#/connect/<id>) reuse the web handler.
       const m = url.match(/#\/connect\/([0-9a-fA-F-]{36})/)
       if (m) localStorage.setItem('deep-social.pending-connect', m[1])
+      const e = url.match(/#\/(pin|event)\/([A-Za-z0-9-]{1,40})/)
+      if (e) localStorage.setItem('deep-social.pending-link', `${e[1]}:${e[2]}`)
     }
   })
 

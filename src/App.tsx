@@ -431,7 +431,33 @@ export default function App() {
       localStorage.setItem('deep-social.pending-connect', m[1])
       window.history.replaceState(null, '', window.location.pathname + window.location.search)
     }
+    // Shared event links: #/pin/<uuid> (real pins) or #/event/<seed-id>
+    const e = window.location.hash.match(/#\/(pin|event)\/([A-Za-z0-9-]{1,40})/)
+    if (e) {
+      localStorage.setItem('deep-social.pending-link', `${e[1]}:${e[2]}`)
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
   }, [])
+
+  // Consume a shared-event link once its target can exist: sim events as
+  // soon as a session is up; real pins after the first pins fetch.
+  useEffect(() => {
+    if (!session) return
+    const pending = localStorage.getItem('deep-social.pending-link')
+    if (!pending) return
+    const [kind, id] = pending.split(':')
+    const eventId = kind === 'pin' ? `pin-${id}` : id
+    const target = displayWorld.events.find((ev) => ev.id === eventId)
+    if (target) {
+      localStorage.removeItem('deep-social.pending-link')
+      selectEvent(eventId)
+      toast(`Someone shared this with you: ${target.title} 📍`)
+    } else if (kind === 'event') {
+      // seed id that doesn't exist — drop it rather than retrying forever
+      localStorage.removeItem('deep-social.pending-link')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, userPins])
 
   useEffect(() => {
     if (!backendLive || connectHandled.current) return

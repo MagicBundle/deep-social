@@ -3,6 +3,8 @@ import type { SocialEvent, Vibe, World } from '../types'
 import { interestFor } from '../data/mock'
 import { attendingCount, isLive, remotePinId, timeLabel } from '../sim/engine'
 import { listVibes, reportVibe } from '../services/db'
+import { downloadIcs } from '../services/calendar'
+import { shareEvent } from '../services/share'
 
 interface Props {
   event: SocialEvent
@@ -114,6 +116,31 @@ export default function EventCard({
           <small>{count} going</small>
         </div>
         <div className="card-actions">
+          <button
+            className="icon-btn"
+            title="Add to calendar"
+            aria-label="Add to calendar"
+            onClick={() => {
+              downloadIcs(event)
+              onNotify('Calendar file downloaded 📅')
+            }}
+          >
+            📅
+          </button>
+          <button
+            className="icon-btn"
+            title="Share (WhatsApp & more)"
+            aria-label="Share event"
+            onClick={() => {
+              shareEvent(event)
+                .then((how) =>
+                  onNotify(how === 'whatsapp' ? 'Opening WhatsApp to share 📤' : 'Shared 📤'),
+                )
+                .catch(() => {})
+            }}
+          >
+            📤
+          </button>
           <button className={`btn-join${joined ? ' joined' : ''}`} onClick={onJoin}>
             {joined ? 'Joined ✓' : 'Join meetup'}
           </button>

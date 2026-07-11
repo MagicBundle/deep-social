@@ -966,7 +966,25 @@ strong.identity-link:hover {
 
 .card-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .btn-join {
