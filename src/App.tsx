@@ -72,6 +72,7 @@ import GuardianModal from './components/GuardianModal'
 import GuardianBar from './components/GuardianBar'
 import { neutralMapsLink, openDirections } from './services/navigation'
 import { notify, registerPush, unregisterPush, type PushTap } from './services/push'
+import { getCurrentPosition, watchPosition } from './services/geolocation'
 import type { GuardianSession } from './types'
 import type { ConnectTarget, MapLayer, NearbyProfile, VisibilityMode } from './types'
 
@@ -290,43 +291,34 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backendLive, mePos])
 
-  // Center the experience on the visitor (with their permission). Falls
-  // back silently to the Luxembourg default when denied or unavailable.
+  // Center the experience on the visitor (with their permission). Native
+  // uses CoreLocation via the geolocation service; web uses the browser API.
+  // Falls back silently to the Luxembourg default when denied/unavailable.
   useEffect(() => {
-    if (!session || !('geolocation' in navigator)) return
+    if (!session) return
     // One-shot: center the map on first fix per app load
     if (!didLocate.current) {
       didLocate.current = true
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const here = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-          setMePos(here)
-          setLocatedPos(here)
-          flyTo(here.lat, here.lng, 13)
-          toast('Centered on your location 📍')
-        },
-        () => {},
-        { timeout: 8000, maximumAge: 300_000 },
-      )
+      getCurrentPosition().then((here) => {
+        if (!here) return
+        setMePos(here)
+        setLocatedPos(here)
+        flyTo(here.lat, here.lng, 13)
+        toast('Centered on your location 📍')
+      })
     }
     // Keep following while the app is open, but only accept significant
     // movement (>100 m) so state churn and heartbeats stay calm.
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const here = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-        setLocatedPos((prev) => {
-          if (!prev) return here
-          const dLat = (here.lat - prev.lat) * 111_320
-          const dLng = (here.lng - prev.lng) * 111_320 * Math.cos((here.lat * Math.PI) / 180)
-          if (Math.hypot(dLat, dLng) < 100) return prev
-          setMePos(here)
-          return here
-        })
-      },
-      () => {},
-      { enableHighAccuracy: false, maximumAge: 60_000 },
-    )
-    return () => navigator.geolocation.clearWatch(watchId)
+    return watchPosition((here) => {
+      setLocatedPos((prev) => {
+        if (!prev) return here
+        const dLat = (here.lat - prev.lat) * 111_320
+        const dLng = (here.lng - prev.lng) * 111_320 * Math.cos((here.lat * Math.PI) / 180)
+        if (Math.hypot(dLat, dLng) < 100) return prev
+        setMePos(here)
+        return here
+      })
+    })
   }, [session])
 
   // Publish my position to the backend — but only with a real device fix
