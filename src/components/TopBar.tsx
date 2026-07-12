@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ProfileHit, Session, VisibilityMode, World } from '../types'
 import type { PanelTab } from './SidePanel'
 import { AVATAR_EMOJIS, INTERESTS, INTEREST_BY_ID, interestFor } from '../data/mock'
@@ -235,41 +236,221 @@ export default function TopBar({
               session.avatar
             )}
           </button>
+
+          {createPortal(
+            <>
           {menuOpen && (
-            <div className="avatar-dropdown">
-              <div className="avatar-row">
-                <strong>{session.name}</strong>
-                {session.email && <small>{session.email}</small>}
-                <small>via {PROVIDER_BADGE[session.provider]}{session.real ? '' : ' (demo)'}</small>
+            <>
+              <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
+              <div className="avatar-dropdown">
+                <div className="menu-handle" />
+
+                <div className="avatar-row">
+                  <span className="menu-avatar">
+                    {session.avatarEmoji ? (
+                      session.avatarEmoji
+                    ) : session.picture ? (
+                      <img src={session.picture} alt="" referrerPolicy="no-referrer" />
+                    ) : (
+                      session.avatar
+                    )}
+                  </span>
+                  <span className="menu-id">
+                    <strong>{session.name}</strong>
+                    {session.email && <small>{session.email}</small>}
+                    <small>
+                      via {PROVIDER_BADGE[session.provider]}
+                      {session.real ? '' : ' (demo)'}
+                    </small>
+                  </span>
+                </div>
+
+                {backendUser && (
+                  <>
+                    <div className="menu-section">Presence</div>
+                    <button className="menu-row" onClick={() => setVibeOpen(true)}>
+                      <span className="mr-label">⚡ Tonight&apos;s vibe</span>
+                      <span className={`mr-state${myVibe ? ' set' : ''}`}>
+                        {myVibe
+                          ? `${interestFor(myVibe).emoji} ${interestFor(myVibe).label}`
+                          : 'Not set'}
+                      </span>
+                    </button>
+                    <button className="menu-row" onClick={() => setVisibilityOpen(true)}>
+                      <span className="mr-label">🔭 Privacy &amp; visibility</span>
+                      <span className="mr-state set">
+                        {VISIBILITY_OPTIONS.find((v) => v.mode === visibilityMode)?.emoji}{' '}
+                        {VISIBILITY_OPTIONS.find((v) => v.mode === visibilityMode)?.label ?? 'Ghost'}
+                      </span>
+                    </button>
+                    <button className="menu-row" onClick={() => setAvatarPickerOpen(true)}>
+                      <span className="mr-label">🎭 Avatar</span>
+                      <span className="mr-state set">
+                        {session.avatarEmoji ?? (session.picture ? 'Photo' : session.avatar)}
+                      </span>
+                    </button>
+                  </>
+                )}
+
+                <div className="menu-section">Network</div>
+                <button className="menu-row" onClick={() => goTab('friends')}>
+                  <span className="mr-label">👥 Friends</span>
+                  <span className="mr-state">
+                    {stats.friendCount}
+                    {stats.requestCount > 0 && (
+                      <em className="menu-alert"> · {stats.requestCount}!</em>
+                    )}
+                    {stats.unreadDms > 0 && <em className="menu-alert"> · {stats.unreadDms} 💬</em>}
+                  </span>
+                </button>
+                <button className="menu-row" onClick={() => goTab('mine')}>
+                  <span className="mr-label">🎟️ My meetups</span>
+                  <span className="mr-state">{stats.meetupCount}</span>
+                </button>
+
+                {backendUser && (
+                  <>
+                    <div className="menu-section">Tools &amp; safety</div>
+                    <button
+                      className="menu-row"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onSharePresence()
+                      }}
+                    >
+                      <span className="mr-label">📡 Share my presence</span>
+                      <span className="mr-chevron">›</span>
+                    </button>
+                    <button
+                      className="menu-row"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onOpenConstellation()
+                      }}
+                    >
+                      <span className="mr-label">🌌 Constellation</span>
+                      <span className="mr-chevron">›</span>
+                    </button>
+                    <button
+                      className="menu-row"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onOpenGuardian()
+                      }}
+                    >
+                      <span className="mr-label">🛡️ Guardian mode</span>
+                      <span className="mr-chevron">›</span>
+                    </button>
+
+                    <div className="menu-section">Account</div>
+                    <button
+                      className="menu-row"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onOpenBlocked()
+                      }}
+                    >
+                      <span className="mr-label">🚫 Blocked users</span>
+                      <span className="mr-chevron">›</span>
+                    </button>
+                  </>
+                )}
+
+                <div className="menu-foot">
+                  <button className="menu-signout" onClick={onSignOut}>
+                    Sign out
+                  </button>
+                  {backendUser && (
+                    <button
+                      className="menu-delete"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onDeleteAccount()
+                      }}
+                    >
+                      🗑️ Delete account
+                    </button>
+                  )}
+                </div>
               </div>
+            </>
+          )}
 
-              <button className="menu-row" onClick={() => goTab('friends')}>
-                <span>👥 Friends</span>
-                <small>
-                  {stats.friendCount}
-                  {stats.requestCount > 0 && (
-                    <em className="menu-alert"> · {stats.requestCount} request{stats.requestCount > 1 ? 's' : ''}!</em>
-                  )}
-                  {stats.unreadDms > 0 && (
-                    <em className="menu-alert"> · {stats.unreadDms} 💬</em>
-                  )}
-                </small>
-              </button>
+          {vibeOpen && (
+            <div className="composer-backdrop" onClick={() => setVibeOpen(false)}>
+              <div className="pin-composer picker-modal" onClick={(e) => e.stopPropagation()}>
+                <button className="card-close" onClick={() => setVibeOpen(false)} aria-label="Close">
+                  ×
+                </button>
+                <h3>⚡ Tonight&apos;s vibe</h3>
+                <p className="composer-sub">Tell people nearby what you&apos;re up for — fades after 3 h.</p>
+                <div className="vibe-grid">
+                  {INTERESTS.map((i) => (
+                    <button
+                      key={i.id}
+                      className={`chip${myVibe === i.id ? ' active' : ''}`}
+                      style={{ ['--c' as string]: i.color }}
+                      onClick={() => onSetVibe(myVibe === i.id ? null : i.id)}
+                    >
+                      {i.emoji} {i.label}
+                    </button>
+                  ))}
+                </div>
+                {myVibe && (
+                  <button className="vibe-clear" onClick={() => onSetVibe(null)}>
+                    Clear vibe
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
-              <button className="menu-row" onClick={() => goTab('mine')}>
-                <span>📅 My meetups</span>
-                <small>
-                  {stats.meetupCount}
-                  {stats.nextEventLabel ? ` · next: ${stats.nextEventLabel}` : ''}
-                </small>
-              </button>
+          {visibilityOpen && (
+            <div className="composer-backdrop" onClick={() => setVisibilityOpen(false)}>
+              <div className="pin-composer picker-modal" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="card-close"
+                  onClick={() => setVisibilityOpen(false)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+                <h3>🔭 Privacy &amp; visibility</h3>
+                <p className="composer-sub">
+                  Controls what strangers see. Friends always see your full profile.
+                </p>
+                <div className="visibility-grid">
+                  {VISIBILITY_OPTIONS.map((v) => (
+                    <button
+                      key={v.mode}
+                      className={`visibility-opt${visibilityMode === v.mode ? ' active' : ''}`}
+                      onClick={() => onSetVisibility(v.mode)}
+                    >
+                      <span className="vis-emoji">{v.emoji}</span>
+                      <span className="vis-text">
+                        <strong>{v.label}</strong>
+                        <small>{v.desc}</small>
+                      </span>
+                      {visibilityMode === v.mode && <span className="vis-check">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
-              <button className="menu-row" onClick={() => setAvatarPickerOpen((o) => !o)}>
-                <span>🎭 Avatar</span>
-                <small>{session.avatarEmoji ?? (session.picture ? 'your photo' : session.avatar)} · change</small>
-              </button>
-
-              {avatarPickerOpen && (
+          {avatarPickerOpen && (
+            <div className="composer-backdrop" onClick={() => setAvatarPickerOpen(false)}>
+              <div className="pin-composer picker-modal" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="card-close"
+                  onClick={() => setAvatarPickerOpen(false)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+                <h3>🎭 Your avatar</h3>
+                <p className="composer-sub">Pick an animal — it&apos;s how you appear to everyone.</p>
                 <div className="avatar-grid">
                   {AVATAR_EMOJIS.map((e) => (
                     <button
@@ -280,131 +461,17 @@ export default function TopBar({
                       {e}
                     </button>
                   ))}
-                  {session.picture && session.avatarEmoji && (
-                    <button className="avatar-reset" onClick={() => onPickAvatar(null)}>
-                      Use my photo instead
-                    </button>
-                  )}
                 </div>
-              )}
-
-              {backendUser && (
-                <>
-                  <button className="menu-row" onClick={() => setVibeOpen((o) => !o)}>
-                    <span>⚡ Tonight's vibe</span>
-                    <small>
-                      {myVibe
-                        ? `${interestFor(myVibe).emoji} ${interestFor(myVibe).label} · fades in 3 h`
-                        : 'not set · tell people what you’re up for'}
-                    </small>
+                {session.picture && session.avatarEmoji && (
+                  <button className="avatar-reset" onClick={() => onPickAvatar(null)}>
+                    Use my photo instead
                   </button>
-
-                  {vibeOpen && (
-                    <div className="vibe-grid">
-                      {INTERESTS.map((i) => (
-                        <button
-                          key={i.id}
-                          className={`chip${myVibe === i.id ? ' active' : ''}`}
-                          style={{ ['--c' as string]: i.color }}
-                          onClick={() => onSetVibe(myVibe === i.id ? null : i.id)}
-                        >
-                          {i.emoji} {i.label}
-                        </button>
-                      ))}
-                      {myVibe && (
-                        <button className="vibe-clear" onClick={() => onSetVibe(null)}>
-                          Clear vibe
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  <button className="menu-row" onClick={() => setVisibilityOpen((o) => !o)}>
-                    <span>🔭 Privacy &amp; visibility</span>
-                    <small>
-                      {VISIBILITY_OPTIONS.find((v) => v.mode === visibilityMode)?.label ?? 'Ghost'} ·
-                      change
-                    </small>
-                  </button>
-
-                  {visibilityOpen && (
-                    <div className="visibility-grid">
-                      {VISIBILITY_OPTIONS.map((v) => (
-                        <button
-                          key={v.mode}
-                          className={`visibility-opt${visibilityMode === v.mode ? ' active' : ''}`}
-                          onClick={() => onSetVisibility(v.mode)}
-                        >
-                          <span className="vis-emoji">{v.emoji}</span>
-                          <span className="vis-text">
-                            <strong>{v.label}</strong>
-                            <small>{v.desc}</small>
-                          </span>
-                          {visibilityMode === v.mode && <span className="vis-check">✓</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <button
-                    className="menu-row"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onSharePresence()
-                    }}
-                  >
-                    <span>📡 Share my presence</span>
-                    <small>Show a QR to connect in person</small>
-                  </button>
-
-                  <button
-                    className="menu-row"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onOpenConstellation()
-                    }}
-                  >
-                    <span>🌌 Constellation</span>
-                    <small>Your city as memory — private</small>
-                  </button>
-
-                  <button
-                    className="menu-row"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onOpenGuardian()
-                    }}
-                  >
-                    <span>🛡️ Guardian mode</span>
-                    <small>A friend watches over your meetup</small>
-                  </button>
-
-                  <button
-                    className="menu-row"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onOpenBlocked()
-                    }}
-                  >
-                    <span>🚫 Blocked users</span>
-                    <small>Manage who can't see or contact you</small>
-                  </button>
-
-                  <button
-                    className="menu-row menu-danger"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onDeleteAccount()
-                    }}
-                  >
-                    <span>🗑️ Delete account</span>
-                    <small>Permanently erase your data</small>
-                  </button>
-                </>
-              )}
-
-              <button onClick={onSignOut}>Sign out</button>
+                )}
+              </div>
             </div>
+          )}
+            </>,
+            document.body,
           )}
         </div>
       </div>
