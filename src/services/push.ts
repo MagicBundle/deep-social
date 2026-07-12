@@ -1,5 +1,21 @@
 import { Capacitor } from '@capacitor/core'
-import { getSupabase } from './supabase'
+import { getSupabase, isBackendConfigured } from './supabase'
+
+export type NotifyKind = 'dm' | 'friend_request' | 'friend_accepted'
+
+/** Fire-and-forget push to another user via the `push` Edge Function. Works
+ *  from web and native (a web sender can still push a mobile recipient).
+ *  No-ops silently if the backend or the function isn't available. */
+export function notify(to: string, kind: NotifyKind, preview?: string): void {
+  if (!isBackendConfigured() || !to) return
+  try {
+    void getSupabase()
+      .functions.invoke('push', { body: { to, kind, preview } })
+      .catch(() => {})
+  } catch {
+    /* ignore */
+  }
+}
 
 // Native push registration (receive side). No-ops on the web and degrades
 // gracefully in the simulator (no APNs token issues there). The send side is

@@ -71,7 +71,7 @@ import ConstellationModal from './components/ConstellationModal'
 import GuardianModal from './components/GuardianModal'
 import GuardianBar from './components/GuardianBar'
 import { neutralMapsLink, openDirections } from './services/navigation'
-import { registerPush, unregisterPush, type PushTap } from './services/push'
+import { notify, registerPush, unregisterPush, type PushTap } from './services/push'
 import type { GuardianSession } from './types'
 import type { ConnectTarget, MapLayer, NearbyProfile, VisibilityMode } from './types'
 
@@ -515,6 +515,7 @@ export default function App() {
         }
         try {
           const status = await requestFriend(pending)
+          notify(pending, status === 'accepted' ? 'friend_accepted' : 'friend_request')
           setDeepCard({ target, outcome: status === 'accepted' ? 'connected' : 'sent' })
           refreshFriends()
         } catch (e) {
@@ -528,6 +529,7 @@ export default function App() {
   const handleAddFriend = async (profile: ProfileHit) => {
     try {
       const status = await requestFriend(profile.id)
+      notify(profile.id, status === 'accepted' ? 'friend_accepted' : 'friend_request')
       toast(
         status === 'accepted'
           ? `You and ${profile.displayName} are now friends 🎉`
@@ -544,7 +546,10 @@ export default function App() {
   const handleRespondFriend = (userId: string, accept: boolean) => {
     respondFriend(userId, accept)
       .then(() => {
-        if (accept) toast('Friend request accepted 🎉')
+        if (accept) {
+          toast('Friend request accepted 🎉')
+          notify(userId, 'friend_accepted') // tell the original requester
+        }
         refreshFriends()
       })
       .catch(() => toast('Could not update the request, try again'))
@@ -739,6 +744,7 @@ export default function App() {
   const handlePersonConnect = (person: NearbyProfile) => {
     requestFriend(person.id)
       .then((status) => {
+        notify(person.id, status === 'accepted' ? 'friend_accepted' : 'friend_request')
         toast(
           status === 'accepted'
             ? `You're connected 🎉`

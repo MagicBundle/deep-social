@@ -17,6 +17,7 @@ import type {
 } from '../types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabase } from './supabase'
+import { notify } from './push'
 
 // Typed data layer over the SQL API defined in supabase/migrations/.
 // Conventions:
@@ -328,6 +329,7 @@ export async function sendDm(friendId: string, body: string): Promise<string> {
   if (!text) fail('sendDm', 'empty message')
   const { data, error } = await getSupabase().rpc('send_dm', { recipient: friendId, body: text })
   if (error) fail('sendDm', error.message)
+  notify(friendId, 'dm', text) // push the recipient (covers chat + guardian DMs)
   return data as string
 }
 
