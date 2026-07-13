@@ -83,6 +83,21 @@ export default function FriendProfileModal({
           </div>
         )}
 
+        {friend.state === 'friend' && friend.instagramHandle && (
+          <button
+            className="fp-instagram"
+            onClick={() =>
+              window.open(
+                `https://instagram.com/${friend.instagramHandle}`,
+                '_blank',
+                'noopener,noreferrer',
+              )
+            }
+          >
+            <span className="ig-glyph">📸</span> @{friend.instagramHandle}
+          </button>
+        )}
+
         <div className="composer-actions fp-actions">
           {friend.state === 'friend' && (
             <>

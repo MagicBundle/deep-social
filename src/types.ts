@@ -182,6 +182,8 @@ export interface FriendEntry {
   interests: string[]
   state: FriendState
   since: string
+  /** Instagram handle — only present for accepted friends who set one. */
+  instagramHandle?: string
 }
 
 /** A photo attached to an event pin. */
@@ -219,6 +221,7 @@ export interface MyProfile {
   interests: string[]
   visibilityMode: VisibilityMode
   currentVibe?: string
+  instagramHandle?: string
   lat?: number
   lng?: number
   locationUpdatedAt?: string

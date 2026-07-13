@@ -43,6 +43,7 @@ import {
   respondFriend,
   setMyAvatarEmoji,
   setMyDisplayName,
+  setMyInstagram,
   setMyVibe,
   setVisibilityMode,
   snapForObserver,
@@ -138,6 +139,7 @@ export default function App() {
   const [sheetSignal, setSheetSignal] = useState(0)
   const [visibility, setVisibility] = useState<VisibilityMode>('ghost')
   const [myVibe, setMyVibe_] = useState<string | null>(null)
+  const [instagramHandle, setInstagramHandle] = useState<string | undefined>(undefined)
   const [shareOpen, setShareOpen] = useState(false)
   const [nearbyPeople, setNearbyPeople] = useState<NearbyProfile[]>([])
   const [personId, setPersonId] = useState<string | null>(null)
@@ -265,6 +267,17 @@ export default function App() {
       setMyDisplayName(clean).catch((e) => {
         console.warn('[name] save failed:', e)
         toast('Could not save the name — is migration 0013 applied?')
+      })
+    }
+  }
+
+  const handleSetInstagram = (handle: string | null) => {
+    setInstagramHandle(handle ?? undefined)
+    toast(handle ? `Instagram linked · @${handle}` : 'Instagram removed')
+    if (backendLive) {
+      setMyInstagram(handle).catch((e) => {
+        console.warn('[instagram] save failed:', e)
+        toast('Could not save Instagram — is migration 0014 applied?')
       })
     }
   }
@@ -433,6 +446,7 @@ export default function App() {
         if (p) {
           setVisibility(p.visibilityMode)
           setMyVibe_(p.currentVibe ?? null)
+          setInstagramHandle(p.instagramHandle)
           // Adopt the freely-chosen display name so it survives re-login
           // (OAuth would otherwise re-supply the real name each time).
           if (p.displayName) {
@@ -1013,6 +1027,8 @@ export default function App() {
         }}
         onPickAvatar={handlePickAvatar}
         onSetName={handleSetName}
+        instagramHandle={instagramHandle}
+        onSetInstagram={handleSetInstagram}
         onSetVisibility={handleSetVisibility}
         onSetVibe={handleSetVibe}
         onSharePresence={() => setShareOpen(true)}

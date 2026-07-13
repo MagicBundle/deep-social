@@ -69,6 +69,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     interests: row.interests ?? [],
     visibilityMode: row.visibility_mode as VisibilityMode,
     currentVibe: row.current_vibe ?? undefined,
+    instagramHandle: row.instagram_handle ?? undefined,
     lat: row.lat ?? undefined,
     lng: row.lng ?? undefined,
     locationUpdatedAt: row.location_updated_at ?? undefined,
@@ -261,6 +262,26 @@ export async function setMyDisplayName(name: string): Promise<void> {
   if (error) fail('setMyDisplayName', error.message)
 }
 
+/** Normalize a raw Instagram input to a bare handle (no @, no url), or null.
+ *  Returns undefined if the text isn't a valid handle so callers can reject. */
+export function normalizeInstagram(raw: string): string | null | undefined {
+  let h = raw.trim()
+  if (!h) return null // empty clears the handle
+  // Accept a pasted profile URL or an @-prefixed handle.
+  h = h.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/[/?].*$/, '')
+  h = h.replace(/^@+/, '').trim()
+  return /^[A-Za-z0-9._]{1,30}$/.test(h) ? h : undefined
+}
+
+/** Set (or clear, with null) the user's Instagram handle. Friends-only. */
+export async function setMyInstagram(handle: string | null): Promise<void> {
+  const supabase = getSupabase()
+  const uid = (await supabase.auth.getUser()).data.user?.id
+  if (!uid) fail('setMyInstagram', 'not authenticated')
+  const { error } = await supabase.from('profiles').update({ instagram_handle: handle }).eq('id', uid)
+  if (error) fail('setMyInstagram', error.message)
+}
+
 export async function getMyAvatarEmoji(): Promise<string | null> {
   const supabase = getSupabase()
   const uid = (await supabase.auth.getUser()).data.user?.id
@@ -306,6 +327,7 @@ export async function myFriendships(): Promise<FriendEntry[]> {
     interests: (r.interests as string[]) ?? [],
     state: r.state as FriendState,
     since: r.since as string,
+    instagramHandle: (r.instagram_handle as string | null) ?? undefined,
   }))
 }
 

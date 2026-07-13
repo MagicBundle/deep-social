@@ -4,7 +4,7 @@ import type { ProfileHit, Session, VisibilityMode, World } from '../types'
 import type { PanelTab } from './SidePanel'
 import { AVATAR_EMOJIS, INTERESTS, INTEREST_BY_ID, interestFor } from '../data/mock'
 import { timeLabel } from '../sim/engine'
-import { searchProfiles } from '../services/db'
+import { searchProfiles, normalizeInstagram } from '../services/db'
 
 const VISIBILITY_OPTIONS: { mode: VisibilityMode; emoji: string; label: string; desc: string }[] = [
   { mode: 'ghost', emoji: '👻', label: 'Ghost', desc: 'Invisible to strangers on the map' },
@@ -42,6 +42,8 @@ interface Props {
   onNavigateTab: (tab: PanelTab) => void
   onPickAvatar: (emoji: string | null) => void
   onSetName: (name: string) => void
+  instagramHandle?: string
+  onSetInstagram: (handle: string | null) => void
   onSetVisibility: (mode: VisibilityMode) => void
   onSetVibe: (vibe: string | null) => void
   onSharePresence: () => void
@@ -72,6 +74,8 @@ export default function TopBar({
   onNavigateTab,
   onPickAvatar,
   onSetName,
+  instagramHandle,
+  onSetInstagram,
   onSetVisibility,
   onSetVibe,
   onSharePresence,
@@ -88,6 +92,8 @@ export default function TopBar({
   const [vibeOpen, setVibeOpen] = useState(false)
   const [nameOpen, setNameOpen] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
+  const [igOpen, setIgOpen] = useState(false)
+  const [igDraft, setIgDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const backendUser = Boolean(session.real && session.id)
 
@@ -281,6 +287,18 @@ export default function TopBar({
                     >
                       <span className="mr-label">🏷️ Display name</span>
                       <span className="mr-state set">{session.name}</span>
+                    </button>
+                    <button
+                      className="menu-row"
+                      onClick={() => {
+                        setIgDraft(instagramHandle ?? '')
+                        setIgOpen(true)
+                      }}
+                    >
+                      <span className="mr-label">📸 Instagram</span>
+                      <span className={`mr-state${instagramHandle ? ' set' : ''}`}>
+                        {instagramHandle ? `@${instagramHandle}` : 'Add'}
+                      </span>
                     </button>
                     <button className="menu-row" onClick={() => setVibeOpen(true)}>
                       <span className="mr-label">⚡ Tonight&apos;s vibe</span>
@@ -520,6 +538,67 @@ export default function TopBar({
                   <div className="name-edit-foot">
                     <span className="name-count">{nameDraft.trim().length}/40</span>
                     <button type="submit" className="name-save" disabled={!nameDraft.trim()}>
+                      Save
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+          {igOpen && (
+            <div className="composer-backdrop" onClick={() => setIgOpen(false)}>
+              <div className="pin-composer picker-modal" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="card-close"
+                  onClick={() => setIgOpen(false)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+                <h3>📸 Instagram</h3>
+                <p className="composer-sub">
+                  Only your accepted friends can see this. Leave it empty to remove it.
+                </p>
+                <form
+                  className="name-edit"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    const norm = normalizeInstagram(igDraft)
+                    if (norm !== undefined) {
+                      onSetInstagram(norm)
+                      setIgOpen(false)
+                    }
+                  }}
+                >
+                  <div className="ig-input-wrap">
+                    <span className="ig-at">@</span>
+                    <input
+                      className="name-input ig-input"
+                      value={igDraft}
+                      onChange={(e) => setIgDraft(e.target.value)}
+                      maxLength={80}
+                      autoFocus
+                      placeholder="yourhandle"
+                      aria-label="Instagram handle"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  {igDraft.trim() !== '' && normalizeInstagram(igDraft) === undefined && (
+                    <span className="ig-invalid">
+                      Letters, numbers, periods and underscores only.
+                    </span>
+                  )}
+                  <div className="name-edit-foot">
+                    <span className="name-count">
+                      {instagramHandle && igDraft.trim() === '' ? 'Will remove your handle' : ''}
+                    </span>
+                    <button
+                      type="submit"
+                      className="name-save"
+                      disabled={normalizeInstagram(igDraft) === undefined}
+                    >
                       Save
                     </button>
                   </div>

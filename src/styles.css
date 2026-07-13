@@ -1648,6 +1648,25 @@ strong.identity-link:hover {
   opacity: 0.45;
   cursor: default;
 }
+.ig-input-wrap {
+  position: relative;
+}
+.ig-at {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 16px;
+  pointer-events: none;
+}
+.ig-input {
+  padding-left: 28px;
+}
+.ig-invalid {
+  font-size: 12px;
+  color: #fda4af;
+}
 
 .composer-row {
   display: flex;
@@ -2044,6 +2063,34 @@ strong.identity-link:hover {
 
 .fp-actions {
   margin-top: 4px;
+}
+
+/* Instagram link — only shown to accepted friends. Recognizable IG gradient
+   on a 1px border so it reads as an external brand link, not app chrome. */
+.fp-instagram {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px auto 14px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #fff;
+  cursor: pointer;
+  background:
+    linear-gradient(var(--panel-solid), var(--panel-solid)) padding-box,
+    linear-gradient(100deg, #feda75, #d62976 45%, #962fbf 75%, #4f5bd5) border-box;
+  border: 1.5px solid transparent;
+}
+.fp-instagram:hover {
+  background:
+    linear-gradient(100deg, #feda75, #d62976 45%, #962fbf 75%, #4f5bd5) padding-box,
+    linear-gradient(100deg, #feda75, #d62976 45%, #962fbf 75%, #4f5bd5) border-box;
+}
+.fp-instagram .ig-glyph {
+  font-size: 14px;
 }
 
 .fp-remove {
