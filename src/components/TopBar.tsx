@@ -41,6 +41,7 @@ interface Props {
   onAddFriend: (profile: ProfileHit) => void
   onNavigateTab: (tab: PanelTab) => void
   onPickAvatar: (emoji: string | null) => void
+  onSetName: (name: string) => void
   onSetVisibility: (mode: VisibilityMode) => void
   onSetVibe: (vibe: string | null) => void
   onSharePresence: () => void
@@ -70,6 +71,7 @@ export default function TopBar({
   onAddFriend,
   onNavigateTab,
   onPickAvatar,
+  onSetName,
   onSetVisibility,
   onSetVibe,
   onSharePresence,
@@ -84,6 +86,8 @@ export default function TopBar({
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
   const [visibilityOpen, setVisibilityOpen] = useState(false)
   const [vibeOpen, setVibeOpen] = useState(false)
+  const [nameOpen, setNameOpen] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const backendUser = Boolean(session.real && session.id)
 
@@ -268,6 +272,16 @@ export default function TopBar({
                 {backendUser && (
                   <>
                     <div className="menu-section">Presence</div>
+                    <button
+                      className="menu-row"
+                      onClick={() => {
+                        setNameDraft(session.name)
+                        setNameOpen(true)
+                      }}
+                    >
+                      <span className="mr-label">🏷️ Display name</span>
+                      <span className="mr-state set">{session.name}</span>
+                    </button>
                     <button className="menu-row" onClick={() => setVibeOpen(true)}>
                       <span className="mr-label">⚡ Tonight&apos;s vibe</span>
                       <span className={`mr-state${myVibe ? ' set' : ''}`}>
@@ -467,6 +481,49 @@ export default function TopBar({
                     Use my photo instead
                   </button>
                 )}
+              </div>
+            </div>
+          )}
+          {nameOpen && (
+            <div className="composer-backdrop" onClick={() => setNameOpen(false)}>
+              <div className="pin-composer picker-modal" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="card-close"
+                  onClick={() => setNameOpen(false)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+                <h3>🏷️ Display name</h3>
+                <p className="composer-sub">
+                  This is how everyone sees you. Use your real name or a nickname — a nickname
+                  keeps you anonymous.
+                </p>
+                <form
+                  className="name-edit"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    const clean = nameDraft.trim()
+                    if (clean) onSetName(clean)
+                    setNameOpen(false)
+                  }}
+                >
+                  <input
+                    className="name-input"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    maxLength={40}
+                    autoFocus
+                    placeholder="Your name or nickname"
+                    aria-label="Display name"
+                  />
+                  <div className="name-edit-foot">
+                    <span className="name-count">{nameDraft.trim().length}/40</span>
+                    <button type="submit" className="name-save" disabled={!nameDraft.trim()}>
+                      Save
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}

@@ -42,6 +42,7 @@ import {
   requestFriend,
   respondFriend,
   setMyAvatarEmoji,
+  setMyDisplayName,
   setMyVibe,
   setVisibilityMode,
   snapForObserver,
@@ -254,6 +255,20 @@ export default function App() {
     }
   }
 
+  const handleSetName = (name: string) => {
+    const clean = name.trim().slice(0, 40)
+    if (!clean || !session) return
+    setSession((cur) => (cur ? { ...cur, name: clean } : cur))
+    saveSession({ ...session, name: clean })
+    toast(`You're now ${clean}`)
+    if (backendLive) {
+      setMyDisplayName(clean).catch((e) => {
+        console.warn('[name] save failed:', e)
+        toast('Could not save the name — is migration 0013 applied?')
+      })
+    }
+  }
+
   // Shared pins: initial load around the demo city + realtime invalidation.
   // Requires a real session — the RPCs are authenticated-only by design.
   useEffect(() => {
@@ -418,6 +433,11 @@ export default function App() {
         if (p) {
           setVisibility(p.visibilityMode)
           setMyVibe_(p.currentVibe ?? null)
+          // Adopt the freely-chosen display name so it survives re-login
+          // (OAuth would otherwise re-supply the real name each time).
+          if (p.displayName) {
+            setSession((cur) => (cur && cur.name !== p.displayName ? { ...cur, name: p.displayName } : cur))
+          }
         }
       })
       .catch((e) => console.warn('[visibility] load failed:', e))
@@ -992,6 +1012,7 @@ export default function App() {
           setSheetSignal((n) => n + 1)
         }}
         onPickAvatar={handlePickAvatar}
+        onSetName={handleSetName}
         onSetVisibility={handleSetVisibility}
         onSetVibe={handleSetVibe}
         onSharePresence={() => setShareOpen(true)}

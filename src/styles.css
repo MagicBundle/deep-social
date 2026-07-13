@@ -1603,6 +1603,52 @@ strong.identity-link:hover {
   border-color: var(--brand-b);
 }
 
+/* Display-name editor (profile menu) */
+.name-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+.name-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  outline: none;
+  font: inherit;
+  font-size: 16px; /* ≥16px so iOS Safari doesn't zoom on focus */
+  color: inherit;
+}
+.name-input:focus {
+  border-color: var(--brand-b);
+}
+.name-edit-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.name-count {
+  font-size: 12px;
+  color: var(--muted);
+}
+.name-save {
+  padding: 9px 20px;
+  border-radius: 999px;
+  border: none;
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(120deg, var(--brand-a), var(--brand-b));
+}
+.name-save:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .composer-row {
   display: flex;
   gap: 18px;

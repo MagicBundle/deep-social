@@ -249,6 +249,18 @@ export async function setMyAvatarEmoji(emoji: string | null): Promise<void> {
   if (error) fail('setMyAvatarEmoji', error.message)
 }
 
+/** Set the user's freely-chosen display name (privacy: replaces the real
+ *  name that OAuth handed over). Trimmed & clamped to the 40-char DB guard. */
+export async function setMyDisplayName(name: string): Promise<void> {
+  const supabase = getSupabase()
+  const uid = (await supabase.auth.getUser()).data.user?.id
+  if (!uid) fail('setMyDisplayName', 'not authenticated')
+  const clean = name.trim().slice(0, 40)
+  if (!clean) fail('setMyDisplayName', 'name cannot be empty')
+  const { error } = await supabase.from('profiles').update({ display_name: clean }).eq('id', uid)
+  if (error) fail('setMyDisplayName', error.message)
+}
+
 export async function getMyAvatarEmoji(): Promise<string | null> {
   const supabase = getSupabase()
   const uid = (await supabase.auth.getUser()).data.user?.id
