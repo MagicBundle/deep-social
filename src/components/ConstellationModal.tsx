@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FriendEntry, HistoryEvent } from '../types'
 import { interestFor } from '../data/mock'
 import { myEventHistory, myMediaCount } from '../services/db'
+import ConstellationSky from './ConstellationSky'
 
 interface Props {
   friends: FriendEntry[]
@@ -25,6 +26,8 @@ const monthLabel = (key: string) => {
 export default function ConstellationModal({ friends, onFlyTo, onNotify, onClose }: Props) {
   const [history, setHistory] = useState<HistoryEvent[] | null>(null)
   const [photoCount, setPhotoCount] = useState(0)
+  const [view, setView] = useState<'sky' | 'list'>('sky')
+  const [selected, setSelected] = useState<HistoryEvent | null>(null)
 
   useEffect(() => {
     myEventHistory()
@@ -103,8 +106,66 @@ export default function ConstellationModal({ friends, onFlyTo, onNotify, onClose
           <p className="empty-state">
             Nothing here yet — join an event on the map and your constellation begins. ✨
           </p>
+        ) : view === 'sky' ? (
+          <>
+            <div className="cons-view" role="group" aria-label="Constellation view">
+              <button className="active" onClick={() => setView('sky')}>
+                ⭐ Sky
+              </button>
+              <button onClick={() => setView('list')}>☰ List</button>
+            </div>
+            <div className="sky-wrap">
+              <ConstellationSky
+                months={months}
+                selectedId={selected?.id ?? null}
+                onPick={(h) => setSelected((cur) => (cur?.id === h.id ? null : h))}
+              />
+            </div>
+            {selected ? (
+              (() => {
+                const interest = interestFor(selected.category)
+                return (
+                  <div className="sky-detail">
+                    <span
+                      className="row-emoji"
+                      style={{ background: `${interest.color}22`, borderColor: interest.color }}
+                    >
+                      {interest.emoji}
+                    </span>
+                    <span className="row-text">
+                      <strong>{selected.title}</strong>
+                      <small>
+                        {new Date(selected.startsAt).toLocaleDateString(undefined, {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                        {selected.venue ? ` · ${selected.venue}` : ''}
+                      </small>
+                    </span>
+                    <button
+                      className="friend-chat"
+                      title="Show on map"
+                      onClick={() => onFlyTo(selected.lat, selected.lng)}
+                    >
+                      📍
+                    </button>
+                  </div>
+                )
+              })()
+            ) : (
+              <p className="sky-hint">Tap a star to remember the night ✨</p>
+            )}
+          </>
         ) : (
-          months.map(([key, events]) => (
+          <>
+            <div className="cons-view" role="group" aria-label="Constellation view">
+              <button onClick={() => setView('sky')}>⭐ Sky</button>
+              <button className="active" onClick={() => setView('list')}>
+                ☰ List
+              </button>
+            </div>
+            {months.map(([key, events]) => (
             <div key={key}>
               <div className="friend-section">{monthLabel(key)}</div>
               {events.map((h) => {
@@ -138,7 +199,8 @@ export default function ConstellationModal({ friends, onFlyTo, onNotify, onClose
                 )
               })}
             </div>
-          ))
+          ))}
+          </>
         )}
 
         <div className="composer-actions">
