@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import type { SocialEvent, Vibe, World } from '../types'
+import type { Attendee, SocialEvent, Vibe, World } from '../types'
 import { interestFor } from '../data/mock'
 import { attendingCount, isLive, remotePinId, timeLabel } from '../sim/engine'
-import { listVibes, reportVibe } from '../services/db'
+import { listVibes, pinAttendees, reportVibe } from '../services/db'
 import { downloadIcs } from '../services/calendar'
 import { shareEvent } from '../services/share'
 
@@ -16,6 +16,7 @@ interface Props {
   onVibeCheck: () => void
   onNavigate: (lat: number, lng: number, label: string) => void
   onNotify: (text: string) => void
+  onOpenAttendee: (a: Attendee) => void
   onClose: () => void
 }
 
@@ -29,6 +30,7 @@ export default function EventCard({
   onVibeCheck,
   onNavigate,
   onNotify,
+  onOpenAttendee,
   onClose,
 }: Props) {
   const interest = interestFor(event.category)
@@ -58,6 +60,25 @@ export default function EventCard({
     }
     // mediaCount in deps: realtime bumps it -> refetch the strip
   }, [vibesEnabled, pinId, event.mediaCount])
+
+  // Who's going (real pins only — sim events have no backend attendance).
+  // attendee_count in deps: joining/leaving re-fetches the faces.
+  const [going, setGoing] = useState<Attendee[]>([])
+  useEffect(() => {
+    if (!vibesEnabled || !pinId) {
+      setGoing([])
+      return
+    }
+    let cancelled = false
+    pinAttendees(pinId)
+      .then((a) => {
+        if (!cancelled) setGoing(a)
+      })
+      .catch((e) => console.warn('[attendees] fetch failed:', e))
+    return () => {
+      cancelled = true
+    }
+  }, [vibesEnabled, pinId, event.attendeeCount, joined])
 
   const report = (vibe: Vibe) => {
     if (!pinId || reported.has(vibe.id)) return
@@ -111,12 +132,47 @@ export default function EventCard({
 
       <p className="card-desc">{event.description}</p>
       <div className="card-foot">
-        <div className="avatar-stack" title={attendees.map((a) => a.name).join(', ')}>
-          {attendees.slice(0, 6).map((a) => (
-            <span key={a.id}>{a.avatar}</span>
-          ))}
-          <small>{count} going</small>
-        </div>
+        {going.length > 0 ? (
+          // Real pin: faces come from the server, already filtered through
+          // the visibility ladder. Identified people open their profile;
+          // anonymous ones are a head-count and stay untappable.
+          <div className="avatar-stack">
+            {going.slice(0, 6).map((a, i) =>
+              a.identified ? (
+                <button
+                  key={a.userId}
+                  className={`att-face${a.isFriend ? ' friend' : ''}`}
+                  title={`${a.displayName ?? 'Member'}${a.isFriend ? ' · friend' : ''}`}
+                  aria-label={`Open ${a.displayName ?? 'member'}'s profile`}
+                  onClick={() => onOpenAttendee(a)}
+                >
+                  {a.avatarEmoji ??
+                    (a.avatarUrl ? (
+                      <img src={a.avatarUrl} alt="" referrerPolicy="no-referrer" />
+                    ) : (
+                      '👤'
+                    ))}
+                </button>
+              ) : (
+                <span
+                  key={`anon-${i}`}
+                  className="att-face anon"
+                  title="Someone going — they keep their profile private"
+                >
+                  🔭
+                </span>
+              ),
+            )}
+            <small>{count} going</small>
+          </div>
+        ) : (
+          <div className="avatar-stack" title={attendees.map((a) => a.name).join(', ')}>
+            {attendees.slice(0, 6).map((a) => (
+              <span key={a.id}>{a.avatar}</span>
+            ))}
+            <small>{count} going</small>
+          </div>
+        )}
         <div className="card-actions">
           <button
             className="icon-btn"

@@ -135,6 +135,23 @@ export interface DirectMessage {
 
 export type FriendState = 'friend' | 'incoming' | 'outgoing'
 
+/** Friendship state widened with "not connected at all" — used by the
+ *  profile modal, which can now be opened on a stranger (e.g. from an
+ *  event's attendee list), not just on someone already in your graph. */
+export type ProfileState = FriendState | 'none'
+
+/** One attendee of an event pin, already filtered through the visibility
+ *  ladder by the pin_attendees RPC: friends/beacons/you are identified;
+ *  observers and ghosts arrive anonymous, with userId withheld. */
+export interface Attendee {
+  userId?: string
+  displayName?: string
+  avatarUrl?: string
+  avatarEmoji?: string
+  identified: boolean
+  isFriend: boolean
+}
+
 /** One entry of the user's own attendance history (Constellation). */
 export interface HistoryEvent {
   id: string

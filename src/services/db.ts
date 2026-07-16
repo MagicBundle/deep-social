@@ -1,4 +1,5 @@
 import type {
+  Attendee,
   BlockedUser,
   ConnectTarget,
   CreateEventPinInput,
@@ -523,6 +524,22 @@ export async function joinMeetup(postId: string): Promise<number> {
   const { data, error } = await getSupabase().rpc('join_meetup', { post_id: postId })
   if (error) fail('joinMeetup', error.message)
   return data as number
+}
+
+/** Who's going to a pin. The RPC applies the visibility ladder server-side:
+ *  you, your friends and beacons come back named; observers and ghosts are
+ *  anonymous with no userId (so they can't be looked up by name). */
+export async function pinAttendees(postId: string): Promise<Attendee[]> {
+  const { data, error } = await getSupabase().rpc('pin_attendees', { p_post: postId })
+  if (error) fail('pinAttendees', error.message)
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    userId: (r.user_id as string | null) ?? undefined,
+    displayName: (r.display_name as string | null) ?? undefined,
+    avatarUrl: (r.avatar_url as string | null) ?? undefined,
+    avatarEmoji: (r.avatar_emoji as string | null) ?? undefined,
+    identified: Boolean(r.identified),
+    isFriend: Boolean(r.is_friend),
+  }))
 }
 
 export async function leaveMeetup(postId: string): Promise<number> {

@@ -67,7 +67,7 @@ import FriendChatDrawer from './components/FriendChatDrawer'
 import SharePresenceModal from './components/SharePresenceModal'
 import DeepCard, { type ConnectOutcome } from './components/DeepCard'
 import PersonCard from './components/PersonCard'
-import FriendProfileModal from './components/FriendProfileModal'
+import FriendProfileModal, { type ProfilePerson } from './components/FriendProfileModal'
 import BlockedUsersModal from './components/BlockedUsersModal'
 import DeleteAccountModal from './components/DeleteAccountModal'
 import ConstellationModal from './components/ConstellationModal'
@@ -77,7 +77,7 @@ import { neutralMapsLink, openDirections } from './services/navigation'
 import { notify, registerPush, unregisterPush, type PushTap } from './services/push'
 import { getCurrentPosition, watchPosition } from './services/geolocation'
 import type { GuardianSession } from './types'
-import type { ConnectTarget, MapLayer, NearbyProfile, VisibilityMode } from './types'
+import type { Attendee, ConnectTarget, MapLayer, NearbyProfile, VisibilityMode } from './types'
 
 interface Toast {
   id: number
@@ -146,7 +146,7 @@ export default function App() {
   const [personId, setPersonId] = useState<string | null>(null)
   const [mapLayer, setMapLayer] = useState<MapLayer>('both')
   const [timeOffsetMin, setTimeOffsetMin] = useState(0)
-  const [profileFriend, setProfileFriend] = useState<FriendEntry | null>(null)
+  const [profileFriend, setProfileFriend] = useState<ProfilePerson | null>(null)
   const [blockedOpen, setBlockedOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [constellationOpen, setConstellationOpen] = useState(false)
@@ -582,6 +582,27 @@ export default function App() {
       console.warn('[friends] request failed:', e)
       toast('Could not send the request — is migration 0005 applied?')
     }
+  }
+
+  // Tapping a face on an event card. Anonymous attendees carry no id (the
+  // RPC withholds it) and yourself is a no-op; everyone else opens their
+  // profile — already-friends get the full one, strangers the "add friend"
+  // variant, since DMs stay friends-only.
+  const handleOpenAttendee = (a: Attendee) => {
+    if (!a.userId || a.userId === session?.id) return
+    const existing = friends.find((f) => f.userId === a.userId)
+    if (existing) {
+      setProfileFriend(existing)
+      return
+    }
+    setProfileFriend({
+      userId: a.userId,
+      displayName: a.displayName ?? 'Member',
+      avatarUrl: a.avatarUrl,
+      avatarEmoji: a.avatarEmoji,
+      interests: [],
+      state: 'none',
+    })
   }
 
   const handleRespondFriend = (userId: string, accept: boolean) => {
@@ -1168,6 +1189,7 @@ export default function App() {
           onVibeCheck={() => setVibeFor(selectedEvent.id)}
           onNavigate={handleNavigate}
           onNotify={toast}
+          onOpenAttendee={handleOpenAttendee}
           onClose={() => setSelectedEventId(null)}
         />
       )}
@@ -1197,8 +1219,9 @@ export default function App() {
           friend={profileFriend}
           nearby={nearbyPeople.find((p) => p.id === profileFriend.userId) ?? null}
           onMessage={() => {
+            const entry = friends.find((f) => f.userId === profileFriend.userId)
             setProfileFriend(null)
-            openFriendChat(profileFriend)
+            if (entry) openFriendChat(entry)
           }}
           onShowOnMap={() => {
             setProfileFriend(null)
@@ -1215,6 +1238,16 @@ export default function App() {
           onDecline={() => {
             setProfileFriend(null)
             handleRespondFriend(profileFriend.userId, false)
+          }}
+          onConnect={() => {
+            setProfileFriend(null)
+            handleAddFriend({
+              id: profileFriend.userId,
+              displayName: profileFriend.displayName,
+              avatarUrl: profileFriend.avatarUrl,
+              avatarEmoji: profileFriend.avatarEmoji,
+              interests: profileFriend.interests,
+            })
           }}
           onRemove={() => {
             setProfileFriend(null)

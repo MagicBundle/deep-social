@@ -1,8 +1,15 @@
-import type { FriendEntry, NearbyProfile } from '../types'
+import type { FriendEntry, NearbyProfile, ProfileState } from '../types'
 import { INTEREST_BY_ID, interestFor } from '../data/mock'
 
+/** A friend, or a stranger met through an event's attendee list (state
+ *  'none'): same profile surface, different actions. */
+export type ProfilePerson = Omit<FriendEntry, 'state' | 'since'> & {
+  state: ProfileState
+  since?: string
+}
+
 interface Props {
-  friend: FriendEntry
+  friend: ProfilePerson
   /** live presence entry when this friend is currently visible nearby */
   nearby: NearbyProfile | null
   onMessage: () => void
@@ -10,6 +17,7 @@ interface Props {
   onNavigate: (lat: number, lng: number, label: string) => void
   onAccept: () => void
   onDecline: () => void
+  onConnect: () => void
   onRemove: () => void
   onBlock: () => void
   onClose: () => void
@@ -25,6 +33,7 @@ export default function FriendProfileModal({
   onNavigate,
   onAccept,
   onDecline,
+  onConnect,
   onRemove,
   onBlock,
   onClose,
@@ -55,7 +64,9 @@ export default function FriendProfileModal({
               : 'Friends'
             : friend.state === 'incoming'
               ? 'Wants to connect with you'
-              : 'Friend request pending'}
+              : friend.state === 'outgoing'
+                ? 'Friend request pending'
+                : 'Going to this event'}
           {nearby && ` · ~${(nearby.distanceM / 1000).toFixed(1)} km away`}
         </p>
 
@@ -134,7 +145,16 @@ export default function FriendProfileModal({
               Request sent ✓
             </button>
           )}
+          {friend.state === 'none' && (
+            <button className="btn-join" onClick={onConnect}>
+              ➕ Add friend
+            </button>
+          )}
         </div>
+
+        {friend.state === 'none' && (
+          <p className="fp-note">Chat unlocks once you&apos;re friends.</p>
+        )}
 
         <div className="fp-danger">
           {friend.state === 'friend' && (
