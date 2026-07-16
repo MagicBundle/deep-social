@@ -688,7 +688,7 @@ export default function App() {
   // they get told where you're headed — the destination + a neutral link.
   const handleNavigate = (lat: number, lng: number, label: string) => {
     openDirections(lat, lng)
-    toast(`Opening walking directions to ${label} 🧭`)
+    toast(`Opening walking directions to ${label} 🗺️`)
     const g = guardianSessions.find((s) => s.role === 'protege' && s.status === 'active')
     if (g) {
       sendDm(g.otherId, `🧭 Heading to ${label} — ${neutralMapsLink(lat, lng)}`).catch(() => {})

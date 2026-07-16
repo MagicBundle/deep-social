@@ -98,7 +98,7 @@ export default function PersonCard({
             )
           }
         >
-          🧭
+          🗺️
         </button>
         {friendState === 'friend' ? (
           <button className="btn-join" onClick={onMessage}>

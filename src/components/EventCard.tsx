@@ -135,7 +135,7 @@ export default function EventCard({
             aria-label="Get directions"
             onClick={() => onNavigate(event.lat, event.lng, event.title)}
           >
-            🧭
+            🗺️
           </button>
           <button
             className="icon-btn"

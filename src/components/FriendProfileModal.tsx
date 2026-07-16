@@ -111,7 +111,7 @@ export default function FriendProfileModal({
                   className="btn-chat"
                   onClick={() => onNavigate(nearby.lat, nearby.lng, friend.displayName)}
                 >
-                  🧭 Directions
+                  🗺️ Directions
                 </button>
               )}
               <button className="btn-join" onClick={onMessage}>
