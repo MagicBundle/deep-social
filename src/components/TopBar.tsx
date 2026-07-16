@@ -40,6 +40,7 @@ interface Props {
   onPick: (r: SearchResult) => void
   onAddFriend: (profile: ProfileHit) => void
   onNavigateTab: (tab: PanelTab) => void
+  onLogoHome: () => void
   onPickAvatar: (emoji: string | null) => void
   onSetName: (name: string) => void
   instagramHandle?: string
@@ -72,6 +73,7 @@ export default function TopBar({
   onPick,
   onAddFriend,
   onNavigateTab,
+  onLogoHome,
   onPickAvatar,
   onSetName,
   instagramHandle,
@@ -165,12 +167,17 @@ export default function TopBar({
 
   return (
     <header className="topbar">
-      <div className="brand">
+      <button
+        className="brand"
+        onClick={onLogoHome}
+        title="Back to you, back to now"
+        aria-label="Reset the map: center on you, clear filters, back to now"
+      >
         <div className="logo-mark small">◍</div>
         <span className="brand-name">
           Deep<span>Social</span>
         </span>
-      </div>
+      </button>
 
       <div className="search-wrap">
         <span className="search-icon">⌕</span>

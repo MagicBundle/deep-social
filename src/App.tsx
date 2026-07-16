@@ -18,7 +18,7 @@ import {
   saveSession,
   signOutEverywhere,
 } from './auth'
-import { CHAT_REPLIES, CHAT_SEEDS, CITY_CENTER, interestFor } from './data/mock'
+import { CHAT_REPLIES, CHAT_SEEDS, CITY_CENTER, DEFAULT_VIEW, interestFor } from './data/mock'
 import {
   addVibe,
   blockUser,
@@ -180,6 +180,19 @@ export default function App() {
 
   const flyTo = (lat: number, lng: number, zoom = 15) =>
     setFocus({ lat, lng, zoom, nonce: nextId() })
+
+  // Logo tap = "back to you, back to now": recenter at city zoom and undo
+  // every way the view can drift — filters, layer, scrubber, selections.
+  const handleLogoHome = () => {
+    setFilters(new Set())
+    setMapLayer('both')
+    setTimeOffsetMin(0)
+    setSelectedEventId(null)
+    setPersonId(null)
+    setPinMode(false)
+    setPinDraft(null)
+    flyTo(mePos.lat, mePos.lng, DEFAULT_VIEW.zoom)
+  }
 
   const handleLogin = (newSession: Session) => {
     setSession(newSession)
@@ -1024,6 +1037,7 @@ export default function App() {
         myVibe={myVibe}
         onPick={handleSearchPick}
         onAddFriend={handleAddFriend}
+        onLogoHome={handleLogoHome}
         onNavigateTab={(t) => {
           setTab(t)
           setSheetSignal((n) => n + 1)
