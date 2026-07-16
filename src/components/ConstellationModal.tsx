@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FriendEntry, HistoryEvent } from '../types'
 import { interestFor } from '../data/mock'
 import { myEventHistory, myMediaCount } from '../services/db'
+import { recapMonth, renderRecapPng, shareRecapImage } from '../services/recap'
 import ConstellationSky from './ConstellationSky'
 
 interface Props {
@@ -62,15 +63,30 @@ export default function ConstellationModal({ friends, onFlyTo, onNotify, onClose
     return new Date(dates.reduce((a, b) => (a < b ? a : b)))
   }, [history, accepted])
 
-  const shareRecap = () => {
-    const now = new Date()
-    const k = monthKey(now.toISOString())
-    const thisMonth = months.find(([m]) => m === k)?.[1].length ?? 0
-    const text = `My ${now.toLocaleDateString(undefined, { month: 'long' })} on Deep Social 🌌 ${thisMonth} meetup${thisMonth === 1 ? '' : 's'}, ${accepted.length} friend${accepted.length === 1 ? '' : 's'}, ${photoCount} vibe photo${photoCount === 1 ? '' : 's'}.`
-    if (navigator.share) {
-      navigator.share({ text }).catch(() => {})
-    } else {
-      navigator.clipboard?.writeText(text).then(() => onNotify('Recap copied 🌌')).catch(() => {})
+  const [sharing, setSharing] = useState(false)
+
+  const shareRecap = async () => {
+    const month = recapMonth(months)
+    if (!month) {
+      // nothing to draw yet — fall back to a text recap
+      const text = `My constellation on Deep Social is about to begin 🌌`
+      if (navigator.share) navigator.share({ text }).catch(() => {})
+      else navigator.clipboard?.writeText(text).then(() => onNotify('Copied 🌌')).catch(() => {})
+      return
+    }
+    setSharing(true)
+    try {
+      const blob = await renderRecapPng(month, {
+        friends: accepted.length,
+        photos: photoCount,
+      })
+      const how = await shareRecapImage(blob)
+      if (how === 'downloaded') onNotify('Recap image saved — post it to your story 🌌')
+    } catch (e) {
+      console.warn('[recap] render failed:', e)
+      onNotify('Could not render the recap')
+    } finally {
+      setSharing(false)
     }
   }
 
@@ -204,8 +220,8 @@ export default function ConstellationModal({ friends, onFlyTo, onNotify, onClose
         )}
 
         <div className="composer-actions">
-          <button className="btn-chat" onClick={shareRecap}>
-            📤 Share this month's recap
+          <button className="btn-chat" onClick={shareRecap} disabled={sharing}>
+            {sharing ? 'Rendering your sky…' : "📤 Share this month's recap"}
           </button>
         </div>
       </div>
