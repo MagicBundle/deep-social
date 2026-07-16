@@ -3,6 +3,7 @@ import L from 'leaflet'
 import type { MapFocus, MapLayer, NearbyProfile, SocialEvent, World } from '../types'
 import { CITY_CENTER, DEFAULT_VIEW, INTEREST_BY_ID, interestFor } from '../data/mock'
 import { isLive } from '../sim/engine'
+import { liveAtOffset, overByOffset } from './TimeScrubber'
 
 interface Props {
   world: World
@@ -17,6 +18,8 @@ interface Props {
   draftPin: { lat: number; lng: number } | null
   onPickLocation: (lat: number, lng: number) => void
   mePosition: { lat: number; lng: number }
+  /** minutes ahead of now the time scrubber sits at (0 = live view) */
+  timeOffsetMin: number
 }
 
 const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
@@ -83,6 +86,7 @@ export default function MapView({
   draftPin,
   onPickLocation,
   mePosition,
+  timeOffsetMin,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -150,7 +154,10 @@ export default function MapView({
     const seen = new Set<string>()
     for (const e of world.events) {
       seen.add(e.id)
-      const live = isLive(e)
+      // At "now" keep the classic live rule; while scrubbed, an event is
+      // live when the scrubbed instant falls inside its time window.
+      const live = timeOffsetMin === 0 ? isLive(e) : liveAtOffset(e, timeOffsetMin)
+      const past = timeOffsetMin > 0 && overByOffset(e, timeOffsetMin)
       const selected = e.id === selectedEventId
       let marker = eventMarkers.current.get(e.id)
       if (!marker) {
@@ -195,6 +202,7 @@ export default function MapView({
       const el = marker.getElement()
       const dimmed = filters.size > 0 && !filters.has(e.category)
       el?.classList.toggle('dim', dimmed)
+      el?.classList.toggle('time-past', past)
       el?.classList.toggle('layer-hidden', layer === 'friends')
     }
     for (const [id, marker] of eventMarkers.current) {
@@ -203,7 +211,7 @@ export default function MapView({
         eventMarkers.current.delete(id)
       }
     }
-  }, [world.events, selectedEventId, filters, layer])
+  }, [world.events, selectedEventId, filters, layer, timeOffsetMin])
 
   // Real members (nearby_profiles): create/update/remove, like event markers.
   // Icon rebuilds when identity/mode changes (e.g. friend accepted, mode flip).
@@ -259,6 +267,12 @@ export default function MapView({
   useEffect(() => {
     containerRef.current?.classList.toggle('pin-mode', pinMode)
   }, [pinMode])
+
+  // Scrubbed away from "now": presence is live-only, so people fade out
+  // rather than pretending we know where they'll be.
+  useEffect(() => {
+    containerRef.current?.classList.toggle('time-shift', timeOffsetMin > 0)
+  }, [timeOffsetMin])
 
   useEffect(() => {
     const map = mapRef.current

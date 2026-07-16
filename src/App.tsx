@@ -57,6 +57,7 @@ import LoginScreen from './components/LoginScreen'
 import TopBar, { type SearchResult } from './components/TopBar'
 import SidePanel, { type PanelTab } from './components/SidePanel'
 import MapView from './components/MapView'
+import TimeScrubber from './components/TimeScrubber'
 import EventCard from './components/EventCard'
 import ChatDrawer from './components/ChatDrawer'
 import PinComposer, { type PinFormValues } from './components/PinComposer'
@@ -144,6 +145,7 @@ export default function App() {
   const [nearbyPeople, setNearbyPeople] = useState<NearbyProfile[]>([])
   const [personId, setPersonId] = useState<string | null>(null)
   const [mapLayer, setMapLayer] = useState<MapLayer>('both')
+  const [timeOffsetMin, setTimeOffsetMin] = useState(0)
   const [profileFriend, setProfileFriend] = useState<FriendEntry | null>(null)
   const [blockedOpen, setBlockedOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -1009,6 +1011,7 @@ export default function App() {
         draftPin={pinDraft}
         onPickLocation={handlePickLocation}
         mePosition={mePos}
+        timeOffsetMin={timeOffsetMin}
       />
 
       <TopBar
@@ -1077,6 +1080,16 @@ export default function App() {
           📍 <span className="lt-label">Events</span>
         </button>
       </div>
+
+      {/* Time scrubber: preview the map up to 12 h ahead (hidden while
+          placing a pin — the two bottom-of-map interactions would fight) */}
+      {!pinMode && (
+        <TimeScrubber
+          offsetMin={timeOffsetMin}
+          onChange={setTimeOffsetMin}
+          events={displayWorld.events}
+        />
+      )}
 
       <SidePanel
         world={displayWorld}

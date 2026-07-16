@@ -1795,6 +1795,137 @@ strong.identity-link:hover {
   display: none;
 }
 
+/* ---------- Time scrubber (preview the next 12 h) ---------- */
+
+.time-scrubber {
+  position: absolute;
+  left: 354px; /* clear of the desktop side panel */
+  right: 12px;
+  bottom: 14px;
+  margin: 0 auto;
+  max-width: 430px;
+  z-index: 1045;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+}
+
+.time-scrubber.scrubbed {
+  border-color: color-mix(in srgb, var(--brand-b) 55%, transparent);
+}
+
+.ts-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 76px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.ts-label:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.ts-phase {
+  font-size: 14px;
+}
+
+.ts-reset {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ts-range {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--brand-a), var(--brand-b));
+  opacity: 0.9;
+  outline: none;
+  cursor: pointer;
+}
+
+.ts-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--brand-b);
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.6);
+}
+
+.ts-range::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--brand-b);
+}
+
+.ts-live {
+  min-width: 44px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  text-align: right;
+}
+
+.ts-live.on {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+/* Events already over at the scrubbed time */
+.leaflet-marker-icon.time-past {
+  opacity: 0.25;
+  filter: grayscale(0.85);
+}
+
+/* Scrubbed off "now": presence dots fade — people are only shown live.
+   Opacity goes on the inner dot (Leaflet pins inline opacity:1 on the
+   marker element itself); the wrapper just loses pointer events. */
+.map-root.time-shift .rp-dot,
+.map-root.time-shift .m-dot {
+  /* no transition: the dimmed state must hold even where transitions
+     don't run (reduced motion, throttled webviews) */
+  opacity: 0.15;
+}
+
+.map-root.time-shift .leaflet-marker-icon:has(.rp-dot),
+.map-root.time-shift .leaflet-marker-icon:has(.m-dot) {
+  pointer-events: none;
+}
+
+@media (max-width: 700px) {
+  .time-scrubber {
+    left: 8px;
+    right: 8px;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    max-width: none;
+    padding: 8px 12px;
+  }
+
+  /* Lift the pin FAB clear of the scrubber (it drops back down while
+     pinning, when the scrubber unmounts) */
+  .app:has(.time-scrubber) .fab-pin {
+    bottom: calc(140px + env(safe-area-inset-bottom));
+  }
+}
+
 /* ---------- Real members on the map ---------- */
 
 .rp-dot {
