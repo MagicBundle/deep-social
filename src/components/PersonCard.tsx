@@ -3,6 +3,7 @@ import { INTEREST_BY_ID, interestFor } from '../data/mock'
 
 interface Props {
   person: NearbyProfile
+  myInterests: string[]
   friendState: FriendState | null
   onConnect: () => void
   onAccept: () => void
@@ -17,6 +18,7 @@ interface Props {
 // beacons and friends show the full profile.
 export default function PersonCard({
   person,
+  myInterests,
   friendState,
   onConnect,
   onAccept,
@@ -35,6 +37,21 @@ export default function PersonCard({
   const avatar = person.identified
     ? (person.avatarEmoji ?? (person.avatarUrl ? undefined : '👤'))
     : '🔭'
+
+  // What you have in common — their vibe counts as tonight's interest.
+  const mine = new Set(myInterests)
+  const shared = [
+    ...person.interests.filter((i) => mine.has(i)),
+    ...(person.vibe && mine.has(person.vibe) && !person.interests.includes(person.vibe)
+      ? [person.vibe]
+      : []),
+  ]
+  const sharedSet = new Set(shared)
+  // shared chips surface first
+  const orderedInterests = [
+    ...person.interests.filter((i) => sharedSet.has(i)),
+    ...person.interests.filter((i) => !sharedSet.has(i)),
+  ]
 
   return (
     <div className="event-card person-card" style={{ ['--c' as string]: person.isFriend ? '#4ade80' : '#22d3ee' }}>
@@ -59,14 +76,28 @@ export default function PersonCard({
         </p>
       )}
 
-      {person.interests.length > 0 && (
+      {shared.length > 0 && (
+        <p className="you-both">
+          ✨ You both:{' '}
+          <strong>
+            {shared
+              .map((i) => {
+                const interest = INTEREST_BY_ID[i]
+                return interest ? `${interest.emoji} ${interest.label}` : i
+              })
+              .join(' · ')}
+          </strong>
+        </p>
+      )}
+
+      {orderedInterests.length > 0 && (
         <div className="deep-interests pc-interests">
-          {person.interests.slice(0, 5).map((i) => {
+          {orderedInterests.slice(0, 5).map((i) => {
             const interest = INTEREST_BY_ID[i]
             return (
               <span
                 key={i}
-                className="deep-chip"
+                className={`deep-chip${sharedSet.has(i) ? ' shared' : ''}`}
                 style={{ ['--c' as string]: interest?.color ?? '#94a3b8' }}
               >
                 {interest ? `${interest.emoji} ${interest.label}` : i}

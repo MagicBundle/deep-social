@@ -1232,6 +1232,7 @@ export default function App() {
       {profileFriend && (
         <FriendProfileModal
           friend={profileFriend}
+          myInterests={myInterests}
           nearby={nearbyPeople.find((p) => p.id === profileFriend.userId) ?? null}
           onMessage={() => {
             const entry = friends.find((f) => f.userId === profileFriend.userId)
@@ -1276,6 +1277,7 @@ export default function App() {
       {selectedPerson && (
         <PersonCard
           person={selectedPerson}
+          myInterests={myInterests}
           friendState={friends.find((f) => f.userId === selectedPerson.id)?.state ?? null}
           onConnect={() => handlePersonConnect(selectedPerson)}
           onAccept={() => handleRespondFriend(selectedPerson.id, true)}

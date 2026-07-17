@@ -2261,6 +2261,32 @@ strong.identity-link:hover {
   white-space: nowrap;
 }
 
+/* "You both: 🎸 🧘" — common ground, shown before anything else */
+.you-both {
+  margin: 0 0 10px;
+  padding: 7px 14px;
+  border-radius: 99px;
+  width: fit-content;
+  max-width: 100%;
+  font-size: 12.5px;
+  color: var(--text);
+  background:
+    linear-gradient(var(--panel-solid), var(--panel-solid)) padding-box,
+    linear-gradient(120deg, var(--brand-a), var(--brand-b)) border-box;
+  border: 1.5px solid transparent;
+}
+
+/* centered variants inside the friend-profile card */
+.friend-profile .you-both {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.deep-chip.shared {
+  background: color-mix(in srgb, var(--c) 30%, transparent);
+  font-weight: 700;
+}
+
 /* Tappable attendee faces on an event card. Identified people are buttons;
    anonymous (observer/ghost) attendees are inert head-count chips. */
 .att-face {

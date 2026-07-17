@@ -10,6 +10,7 @@ export type ProfilePerson = Omit<FriendEntry, 'state' | 'since'> & {
 
 interface Props {
   friend: ProfilePerson
+  myInterests: string[]
   /** live presence entry when this friend is currently visible nearby */
   nearby: NearbyProfile | null
   onMessage: () => void
@@ -27,6 +28,7 @@ interface Props {
 // small — the seam for a richer profile later (bio, mutuals, shared events).
 export default function FriendProfileModal({
   friend,
+  myInterests,
   nearby,
   onMessage,
   onShowOnMap,
@@ -39,6 +41,21 @@ export default function FriendProfileModal({
   onClose,
 }: Props) {
   const avatar = friend.avatarEmoji ?? (friend.avatarUrl ? undefined : '👤')
+
+  // What you have in common — a live vibe counts as tonight's interest.
+  const mine = new Set(myInterests)
+  const shared = [
+    ...friend.interests.filter((i) => mine.has(i)),
+    ...(nearby?.vibe && mine.has(nearby.vibe) && !friend.interests.includes(nearby.vibe)
+      ? [nearby.vibe]
+      : []),
+  ]
+  const sharedSet = new Set(shared)
+  const orderedInterests = [
+    ...friend.interests.filter((i) => sharedSet.has(i)),
+    ...friend.interests.filter((i) => !sharedSet.has(i)),
+  ]
+
   const since = friend.since ? new Date(friend.since) : null
   const sinceLabel =
     since && !Number.isNaN(since.getTime())
@@ -77,14 +94,28 @@ export default function FriendProfileModal({
           </p>
         )}
 
-        {friend.interests.length > 0 && (
+        {shared.length > 0 && (
+          <p className="you-both">
+            ✨ You both:{' '}
+            <strong>
+              {shared
+                .map((i) => {
+                  const interest = INTEREST_BY_ID[i]
+                  return interest ? `${interest.emoji} ${interest.label}` : i
+                })
+                .join(' · ')}
+            </strong>
+          </p>
+        )}
+
+        {orderedInterests.length > 0 && (
           <div className="deep-interests">
-            {friend.interests.slice(0, 6).map((i) => {
+            {orderedInterests.slice(0, 6).map((i) => {
               const interest = INTEREST_BY_ID[i]
               return (
                 <span
                   key={i}
-                  className="deep-chip"
+                  className={`deep-chip${sharedSet.has(i) ? ' shared' : ''}`}
                   style={{ ['--c' as string]: interest?.color ?? '#94a3b8' }}
                 >
                   {interest ? `${interest.emoji} ${interest.label}` : i}
