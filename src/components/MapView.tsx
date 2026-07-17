@@ -315,7 +315,7 @@ export default function MapView({
       } else {
         marker.setLatLng([m.lat, m.lng])
       }
-      marker.setTooltipContent(`${m.avatar} ${m.name} — ${m.activity}`)
+      marker.setTooltipContent(`${m.avatar} ${m.name} — ${m.activity} · demo`)
       const el = marker.getElement()
       const dimmed = filters.size > 0 && !m.interests.some((i) => filters.has(i))
       el?.classList.toggle('dim', dimmed)

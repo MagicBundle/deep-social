@@ -2217,6 +2217,50 @@ strong.identity-link:hover {
   color: var(--muted);
 }
 
+/* Simulated people are labeled so testers never mistake them for members */
+.demo-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+/* ── Discover (People tab): shared interests within 50 km ── */
+
+.discover-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px 10px;
+}
+
+.discover-hint {
+  margin: 4px 14px 14px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.shared-badge {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(120deg, var(--brand-a), var(--brand-b));
+  white-space: nowrap;
+}
+
 /* Tappable attendee faces on an event card. Identified people are buttons;
    anonymous (observer/ghost) attendees are inert head-count chips. */
 .att-face {

@@ -166,11 +166,13 @@ export default function EventCard({
             <small>{count} going</small>
           </div>
         ) : (
-          <div className="avatar-stack" title={attendees.map((a) => a.name).join(', ')}>
+          <div className="avatar-stack" title={attendees.map((a) => `${a.name} (demo)`).join(', ')}>
             {attendees.slice(0, 6).map((a) => (
               <span key={a.id}>{a.avatar}</span>
             ))}
-            <small>{count} going</small>
+            <small>
+              {count} going{attendees.length > 0 && <em className="demo-tag">demo</em>}
+            </small>
           </div>
         )}
         <div className="card-actions">

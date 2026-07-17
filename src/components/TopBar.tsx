@@ -151,7 +151,7 @@ export default function TopBar({
           id: m.id,
           emoji: m.avatar,
           label: m.name,
-          sub: m.activity,
+          sub: `${m.activity} · demo member`,
           color: INTEREST_BY_ID[m.interests[0]].color,
         })
       }
@@ -231,7 +231,7 @@ export default function TopBar({
                   <strong>{r.label}</strong>
                   <small>{r.sub}</small>
                 </span>
-                <span className="sr-kind">{r.kind}</span>
+                <span className="sr-kind">{r.kind === 'member' ? 'demo' : r.kind}</span>
               </button>
             ))}
           </div>

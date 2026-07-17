@@ -45,7 +45,11 @@ export default function ChatDrawer({ event, messages, attendeeCount, onSend, onC
           <div key={m.id} className={`chat-msg${m.mine ? ' mine' : ''}`}>
             {!m.mine && <span className="chat-avatar">{m.avatar}</span>}
             <div className="chat-bubble">
-              {!m.mine && <small className="chat-author">{m.authorName}</small>}
+              {!m.mine && (
+                <small className="chat-author">
+                  {m.authorName} <em className="demo-tag">demo</em>
+                </small>
+              )}
               {m.text}
             </div>
           </div>

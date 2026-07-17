@@ -1,8 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FriendEntry, NearbyProfile, World } from '../types'
-import { INTEREST_BY_ID, interestFor } from '../data/mock'
+import { INTEREST_BY_ID, INTERESTS, interestFor } from '../data/mock'
 import { attendingCount, isLive, timeLabel } from '../sim/engine'
 import InterestChips from './InterestChips'
+
+const DISCOVER_RADIUS_KM = 50
+
+/** Great-circle distance — used to scope demo members to the discovery
+ *  radius (real members arrive with a server-computed distance). */
+const kmBetween = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const d = Math.PI / 180
+  const s =
+    Math.sin(((b.lat - a.lat) * d) / 2) ** 2 +
+    Math.cos(a.lat * d) * Math.cos(b.lat * d) * Math.sin(((b.lng - a.lng) * d) / 2) ** 2
+  return 2 * 6371 * Math.asin(Math.sqrt(s))
+}
+
+/** How many of the wanted interests this person shares (their transient
+ *  vibe counts too — it's tonight's interest). */
+const sharedCount = (wanted: Set<string>, interests: string[], vibe?: string) => {
+  let n = interests.filter((i) => wanted.has(i)).length
+  if (vibe && wanted.has(vibe) && !interests.includes(vibe)) n++
+  return n
+}
 
 export type PanelTab = 'events' | 'people' | 'friends' | 'mine'
 
@@ -27,6 +47,10 @@ interface Props {
   dmUnread: Record<string, number>
   people: NearbyProfile[]
   onSelectPerson: (id: string) => void
+  /** the user's saved interests — seed the Discover chips and stay in sync */
+  myInterests: string[]
+  onSetInterests: (ids: string[]) => void
+  mePos: { lat: number; lng: number }
   onRespondFriend: (userId: string, accept: boolean) => void
   onRemoveFriend: (userId: string) => void
   onOpenFriendChat: (friend: FriendEntry) => void
@@ -49,6 +73,9 @@ export default function SidePanel({
   dmUnread,
   people,
   onSelectPerson,
+  myInterests,
+  onSetInterests,
+  mePos,
   onRespondFriend,
   onRemoveFriend,
   onOpenFriendChat,
@@ -105,6 +132,39 @@ export default function SidePanel({
     .sort((a, b) => (a.status === 'heading' ? -1 : 1) - (b.status === 'heading' ? -1 : 1))
 
   const peopleNearby = people.filter((p) => matchesFilter(p.interests))
+
+  // ── Discover: shared interests within 50 km ─────────────────────────────
+  // The chips double as the user's saved profile interests — matching is
+  // two-sided, so picking chips is what makes YOU discoverable too.
+  const [discover, setDiscover] = useState<Set<string>>(() => new Set(myInterests))
+  const interestsKey = myInterests.join(',')
+  useEffect(() => {
+    setDiscover(new Set(myInterests))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interestsKey])
+
+  const toggleDiscover = (id: string) => {
+    setDiscover((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      onSetInterests([...next])
+      return next
+    })
+  }
+
+  // Real members: server already applied the visibility ladder, blocks and
+  // the 2 h freshness window; the 60 km feed is scoped down to 50 km here.
+  const discovered = people
+    .map((p) => ({ p, shared: sharedCount(discover, p.interests, p.vibe) }))
+    .filter(({ p, shared }) => shared > 0 && p.distanceM <= DISCOVER_RADIUS_KM * 1000)
+    .sort((a, b) => b.shared - a.shared || a.p.distanceM - b.p.distanceM)
+
+  const discoveredSim = world.members
+    .map((m) => ({ m, shared: sharedCount(discover, m.interests), km: kmBetween(mePos, m) }))
+    .filter(({ shared, km }) => shared > 0 && km <= DISCOVER_RADIUS_KM)
+    .sort((a, b) => b.shared - a.shared || a.km - b.km)
+    .slice(0, 6)
 
   const mine = world.events.filter((e) => joined.has(e.id))
 
@@ -217,6 +277,101 @@ export default function SidePanel({
             )
           })}
 
+        {tab === 'people' && (
+          <>
+            <div className="friend-section">Discover — shared interests · {DISCOVER_RADIUS_KM} km</div>
+            <div className="discover-chips">
+              {INTERESTS.map((i) => (
+                <button
+                  key={i.id}
+                  className={`chip${discover.has(i.id) ? ' active' : ''}`}
+                  style={{ ['--c' as string]: i.color }}
+                  onClick={() => toggleDiscover(i.id)}
+                >
+                  {i.emoji} {i.label}
+                </button>
+              ))}
+            </div>
+            {discover.size === 0 ? (
+              <p className="discover-hint">
+                Pick what you&apos;re into — you&apos;ll see people within {DISCOVER_RADIUS_KM} km
+                who share it, and they can find you.
+              </p>
+            ) : (
+              <>
+                {discovered.map(({ p, shared }) => {
+                  const matchedLabels = [
+                    ...p.interests.filter((i) => discover.has(i)),
+                    ...(p.vibe && discover.has(p.vibe) && !p.interests.includes(p.vibe)
+                      ? [p.vibe]
+                      : []),
+                  ]
+                    .map((i) => INTEREST_BY_ID[i]?.label ?? i)
+                    .join(', ')
+                  return (
+                    <div
+                      key={`disc-${p.id}`}
+                      className="person-row clickable"
+                      onClick={() => {
+                        setSheet('peek')
+                        onSelectPerson(p.id)
+                      }}
+                      role="button"
+                    >
+                      <span className="row-emoji person">
+                        {p.identified ? (
+                          p.avatarEmoji ??
+                          (p.avatarUrl ? (
+                            <img className="row-avatar" src={p.avatarUrl} alt="" referrerPolicy="no-referrer" />
+                          ) : (
+                            '👤'
+                          ))
+                        ) : (
+                          '🔭'
+                        )}
+                      </span>
+                      <span className="row-text">
+                        <strong>
+                          {p.identified ? p.displayName : 'Someone nearby'}
+                          {p.isFriend && <em className="joined-tick"> ✓</em>}
+                        </strong>
+                        <small>
+                          ~{(p.distanceM / 1000).toFixed(1)} km · {matchedLabels}
+                        </small>
+                      </span>
+                      <span className="shared-badge">{shared} shared</span>
+                    </div>
+                  )
+                })}
+                {discoveredSim.map(({ m, shared, km }) => (
+                  <div key={`disc-sim-${m.id}`} className="person-row">
+                    <span className="row-emoji person">{m.avatar}</span>
+                    <span className="row-text">
+                      <strong>
+                        {m.name} <em className="demo-tag">demo</em>
+                      </strong>
+                      <small>
+                        ~{km.toFixed(1)} km ·{' '}
+                        {m.interests
+                          .filter((i) => discover.has(i))
+                          .map((i) => INTEREST_BY_ID[i]?.label ?? i)
+                          .join(', ')}
+                      </small>
+                    </span>
+                    <span className="shared-badge">{shared} shared</span>
+                  </div>
+                ))}
+                {discovered.length === 0 && discoveredSim.length === 0 && (
+                  <p className="discover-hint">
+                    No one within {DISCOVER_RADIUS_KM} km shares these right now — presence is
+                    live, check back tonight.
+                  </p>
+                )}
+              </>
+            )}
+          </>
+        )}
+
         {tab === 'people' && peopleNearby.length > 0 && (
           <>
             <div className="friend-section">Nearby now — real members</div>
@@ -257,15 +412,19 @@ export default function SidePanel({
                 </span>
               </div>
             ))}
-            <div className="friend-section">Demo world</div>
           </>
+        )}
+        {tab === 'people' && simPeople.length > 0 && (
+          <div className="friend-section">Demo world — simulated people</div>
         )}
         {tab === 'people' &&
           simPeople.map((m) => (
             <div key={m.id} className="person-row">
               <span className="row-emoji person">{m.avatar}</span>
               <span className="row-text">
-                <strong>{m.name}</strong>
+                <strong>
+                  {m.name} <em className="demo-tag">demo</em>
+                </strong>
                 <small className={m.status === 'heading' ? 'heading-to' : ''}>
                   {m.status === 'heading' ? `→ ${m.activity.replace('heading to ', '')}` : m.activity}
                 </small>

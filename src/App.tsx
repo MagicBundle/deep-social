@@ -44,6 +44,7 @@ import {
   setMyAvatarEmoji,
   setMyDisplayName,
   setMyInstagram,
+  setMyInterests,
   setMyVibe,
   setVisibilityMode,
   snapForObserver,
@@ -140,6 +141,7 @@ export default function App() {
   const [sheetSignal, setSheetSignal] = useState(0)
   const [visibility, setVisibility] = useState<VisibilityMode>('ghost')
   const [myVibe, setMyVibe_] = useState<string | null>(null)
+  const [myInterests, setMyInterests_] = useState<string[]>([])
   const [instagramHandle, setInstagramHandle] = useState<string | undefined>(undefined)
   const [shareOpen, setShareOpen] = useState(false)
   const [nearbyPeople, setNearbyPeople] = useState<NearbyProfile[]>([])
@@ -283,6 +285,15 @@ export default function App() {
         console.warn('[name] save failed:', e)
         toast('Could not save the name — is migration 0013 applied?')
       })
+    }
+  }
+
+  // Discover chips double as saved profile interests (two-sided matching:
+  // what you pick is also what makes you findable). Persist quietly.
+  const handleSetInterests = (ids: string[]) => {
+    setMyInterests_(ids)
+    if (backendLive) {
+      setMyInterests(ids).catch((e) => console.warn('[interests] save failed:', e))
     }
   }
 
@@ -461,6 +472,7 @@ export default function App() {
         if (p) {
           setVisibility(p.visibilityMode)
           setMyVibe_(p.currentVibe ?? null)
+          setMyInterests_(p.interests ?? [])
           setInstagramHandle(p.instagramHandle)
           // Adopt the freely-chosen display name so it survives re-login
           // (OAuth would otherwise re-supply the real name each time).
@@ -1129,6 +1141,9 @@ export default function App() {
       <SidePanel
         world={displayWorld}
         filters={filters}
+        myInterests={myInterests}
+        onSetInterests={handleSetInterests}
+        mePos={mePos}
         onToggleFilter={toggleFilter}
         tab={tab}
         onTab={setTab}
