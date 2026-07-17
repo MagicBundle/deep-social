@@ -72,6 +72,7 @@ import FriendProfileModal, { type ProfilePerson } from './components/FriendProfi
 import BlockedUsersModal from './components/BlockedUsersModal'
 import DeleteAccountModal from './components/DeleteAccountModal'
 import ConstellationModal from './components/ConstellationModal'
+import InterestsModal from './components/InterestsModal'
 import GuardianModal from './components/GuardianModal'
 import GuardianBar from './components/GuardianBar'
 import { neutralMapsLink, openDirections } from './services/navigation'
@@ -142,11 +143,13 @@ export default function App() {
   const [visibility, setVisibility] = useState<VisibilityMode>('ghost')
   const [myVibe, setMyVibe_] = useState<string | null>(null)
   const [myInterests, setMyInterests_] = useState<string[]>([])
+  const [interestsOpen, setInterestsOpen] = useState(false)
   const [instagramHandle, setInstagramHandle] = useState<string | undefined>(undefined)
   const [shareOpen, setShareOpen] = useState(false)
   const [nearbyPeople, setNearbyPeople] = useState<NearbyProfile[]>([])
   const [personId, setPersonId] = useState<string | null>(null)
   const [mapLayer, setMapLayer] = useState<MapLayer>('both')
+  const [layersOpen, setLayersOpen] = useState(false)
   const [timeOffsetMin, setTimeOffsetMin] = useState(0)
   const [profileFriend, setProfileFriend] = useState<ProfilePerson | null>(null)
   const [blockedOpen, setBlockedOpen] = useState(false)
@@ -164,15 +167,20 @@ export default function App() {
   } | null>(null)
   const connectHandled = useRef(false)
 
+  const backendLive = isBackendConfigured() && Boolean(session?.real)
+
+  // Demo people retract as the real network arrives: once ≥3 real members
+  // are visible nearby, the simulated ambience yields everywhere at once
+  // (map, People tab, search, event stacks) via this single filter.
+  const hideDemoPeople = backendLive && nearbyPeople.length >= 3
   const displayWorld = {
-    members: world.members,
+    members: hideDemoPeople ? [] : world.members,
     events: [...userPins, ...world.events],
   }
   const worldRef = useRef(displayWorld)
   worldRef.current = displayWorld
   const friendsRef = useRef<FriendEntry[]>([])
   friendsRef.current = friends
-  const backendLive = isBackendConfigured() && Boolean(session?.real)
 
   const toast = (text: string) => {
     const id = nextId()
@@ -288,12 +296,19 @@ export default function App() {
     }
   }
 
-  // Discover chips double as saved profile interests (two-sided matching:
-  // what you pick is also what makes you findable). Persist quietly.
-  const handleSetInterests = (ids: string[]) => {
-    setMyInterests_(ids)
+  // Interests are identity (Discover + "You both" read them). Toggled one
+  // id at a time from the 🎯 modal; the ref mirror makes rapid same-tick
+  // toggles chain correctly instead of clobbering each other, and gives
+  // the persistence call the settled list. Persist quietly.
+  const myInterestsRef = useRef(myInterests)
+  myInterestsRef.current = myInterests
+  const handleToggleInterest = (id: string) => {
+    const prev = myInterestsRef.current
+    const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    myInterestsRef.current = next
+    setMyInterests_(next)
     if (backendLive) {
-      setMyInterests(ids).catch((e) => console.warn('[interests] save failed:', e))
+      setMyInterests(next).catch((e) => console.warn('[interests] save failed:', e))
     }
   }
 
@@ -1079,6 +1094,8 @@ export default function App() {
         onSetName={handleSetName}
         instagramHandle={instagramHandle}
         onSetInstagram={handleSetInstagram}
+        myInterests={myInterests}
+        onOpenInterests={() => setInterestsOpen(true)}
         onSetVisibility={handleSetVisibility}
         onSetVibe={handleSetVibe}
         onSharePresence={() => setShareOpen(true)}
@@ -1103,29 +1120,42 @@ export default function App() {
         <InterestChips filters={filters} onToggle={toggleFilter} />
       </div>
 
-      {/* Map layer switch: everything / friends only / events only */}
+      {/* Map layer switch, folded to one button at rest (quiet-map rule);
+          a non-default layer keeps the active tint so the lens is visible */}
       <div className="layer-toggle" role="group" aria-label="Map layers">
-        <button
-          className={mapLayer === 'both' ? 'active' : ''}
-          title="Show everything"
-          onClick={() => setMapLayer('both')}
-        >
-          ✨ <span className="lt-label">All</span>
-        </button>
-        <button
-          className={mapLayer === 'friends' ? 'active' : ''}
-          title="Friends only"
-          onClick={() => setMapLayer('friends')}
-        >
-          👥 <span className="lt-label">Friends</span>
-        </button>
-        <button
-          className={mapLayer === 'events' ? 'active' : ''}
-          title="Events only"
-          onClick={() => setMapLayer('events')}
-        >
-          📍 <span className="lt-label">Events</span>
-        </button>
+        {layersOpen ? (
+          (
+            [
+              ['both', '✨', 'All'],
+              ['friends', '👥', 'Friends'],
+              ['events', '📍', 'Events'],
+            ] as const
+          ).map(([mode, icon, label]) => (
+            <button
+              key={mode}
+              className={mapLayer === mode ? 'active' : ''}
+              title={label}
+              onClick={() => {
+                setMapLayer(mode)
+                setLayersOpen(false)
+              }}
+            >
+              {icon} <span className="lt-label">{label}</span>
+            </button>
+          ))
+        ) : (
+          <button
+            className={mapLayer !== 'both' ? 'active' : ''}
+            title="Map layers"
+            aria-label="Map layers"
+            onClick={() => setLayersOpen(true)}
+          >
+            {mapLayer === 'both' ? '✨' : mapLayer === 'friends' ? '👥' : '📍'}{' '}
+            <span className="lt-label">
+              {mapLayer === 'both' ? 'All' : mapLayer === 'friends' ? 'Friends' : 'Events'}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Time scrubber: preview the map up to 12 h ahead (hidden while
@@ -1142,7 +1172,7 @@ export default function App() {
         world={displayWorld}
         filters={filters}
         myInterests={myInterests}
-        onSetInterests={handleSetInterests}
+        onEditInterests={() => setInterestsOpen(true)}
         mePos={mePos}
         onToggleFilter={toggleFilter}
         tab={tab}
@@ -1289,6 +1319,14 @@ export default function App() {
       )}
 
       {blockedOpen && <BlockedUsersModal onNotify={toast} onClose={() => setBlockedOpen(false)} />}
+
+      {interestsOpen && (
+        <InterestsModal
+          myInterests={myInterests}
+          onToggle={handleToggleInterest}
+          onClose={() => setInterestsOpen(false)}
+        />
+      )}
 
       {constellationOpen && (
         <ConstellationModal

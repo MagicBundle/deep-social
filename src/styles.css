@@ -1836,6 +1836,20 @@ strong.identity-link:hover {
   border-color: color-mix(in srgb, var(--brand-b) 55%, transparent);
 }
 
+/* At rest the scrubber is a small pill; tap to expand */
+.time-scrubber.collapsed {
+  max-width: fit-content;
+  padding: 8px 16px;
+  cursor: pointer;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+.time-scrubber.collapsed:hover {
+  border-color: var(--brand-b);
+}
+
 .ts-label {
   display: inline-flex;
   align-items: center;
@@ -2236,11 +2250,39 @@ strong.identity-link:hover {
 
 /* ── Discover (People tab): shared interests within 50 km ── */
 
-.discover-chips {
+.discover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.discover-edit {
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.discover-edit:hover {
+  border-color: var(--brand-b);
+}
+
+/* 🎯 My interests modal */
+.interests-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 14px 10px;
+  gap: 8px;
+  padding: 6px 0 2px;
+}
+
+.interests-grid .chip {
+  font-size: 13px;
+  padding: 8px 14px;
 }
 
 .discover-hint {

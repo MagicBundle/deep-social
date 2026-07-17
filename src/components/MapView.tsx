@@ -293,11 +293,14 @@ export default function MapView({
     }
   }, [draftPin])
 
-  // Member markers: create once, then glide to new positions each tick
+  // Member markers: create once, then glide to new positions each tick.
+  // Removal matters now: the demo world retracts once real members arrive.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
+    const seen = new Set<string>()
     for (const m of world.members) {
+      seen.add(m.id)
       let marker = memberMarkers.current.get(m.id)
       if (!marker) {
         const color = INTEREST_BY_ID[m.interests[0]].color
@@ -321,6 +324,12 @@ export default function MapView({
       el?.classList.toggle('dim', dimmed)
       // Sim members are ambience: only show them on the full map
       el?.classList.toggle('layer-hidden', layer !== 'both')
+    }
+    for (const [id, marker] of memberMarkers.current) {
+      if (!seen.has(id)) {
+        marker.remove()
+        memberMarkers.current.delete(id)
+      }
     }
   }, [world.members, filters, layer])
 

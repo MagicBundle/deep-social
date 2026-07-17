@@ -45,6 +45,8 @@ interface Props {
   onSetName: (name: string) => void
   instagramHandle?: string
   onSetInstagram: (handle: string | null) => void
+  myInterests: string[]
+  onOpenInterests: () => void
   onSetVisibility: (mode: VisibilityMode) => void
   onSetVibe: (vibe: string | null) => void
   onSharePresence: () => void
@@ -78,6 +80,8 @@ export default function TopBar({
   onSetName,
   instagramHandle,
   onSetInstagram,
+  myInterests,
+  onOpenInterests,
   onSetVisibility,
   onSetVibe,
   onSharePresence,
@@ -305,6 +309,23 @@ export default function TopBar({
                       <span className="mr-label">📸 Instagram</span>
                       <span className={`mr-state${instagramHandle ? ' set' : ''}`}>
                         {instagramHandle ? `@${instagramHandle}` : 'Add'}
+                      </span>
+                    </button>
+                    <button
+                      className="menu-row"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onOpenInterests()
+                      }}
+                    >
+                      <span className="mr-label">🎯 Interests</span>
+                      <span className={`mr-state${myInterests.length ? ' set' : ''}`}>
+                        {myInterests.length
+                          ? myInterests
+                              .slice(0, 4)
+                              .map((i) => INTEREST_BY_ID[i]?.emoji ?? '')
+                              .join(' ')
+                          : 'Not set'}
                       </span>
                     </button>
                     <button className="menu-row" onClick={() => setVibeOpen(true)}>

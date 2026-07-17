@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FriendEntry, NearbyProfile, World } from '../types'
-import { INTEREST_BY_ID, INTERESTS, interestFor } from '../data/mock'
+import { INTEREST_BY_ID, interestFor } from '../data/mock'
 import { attendingCount, isLive, timeLabel } from '../sim/engine'
 import InterestChips from './InterestChips'
 
@@ -47,9 +47,9 @@ interface Props {
   dmUnread: Record<string, number>
   people: NearbyProfile[]
   onSelectPerson: (id: string) => void
-  /** the user's saved interests — seed the Discover chips and stay in sync */
+  /** the user's saved interests — Discover matches against these */
   myInterests: string[]
-  onSetInterests: (ids: string[]) => void
+  onEditInterests: () => void
   mePos: { lat: number; lng: number }
   onRespondFriend: (userId: string, accept: boolean) => void
   onRemoveFriend: (userId: string) => void
@@ -74,7 +74,7 @@ export default function SidePanel({
   people,
   onSelectPerson,
   myInterests,
-  onSetInterests,
+  onEditInterests,
   mePos,
   onRespondFriend,
   onRemoveFriend,
@@ -134,24 +134,9 @@ export default function SidePanel({
   const peopleNearby = people.filter((p) => matchesFilter(p.interests))
 
   // ── Discover: shared interests within 50 km ─────────────────────────────
-  // The chips double as the user's saved profile interests — matching is
-  // two-sided, so picking chips is what makes YOU discoverable too.
-  const [discover, setDiscover] = useState<Set<string>>(() => new Set(myInterests))
-  const interestsKey = myInterests.join(',')
-  useEffect(() => {
-    setDiscover(new Set(myInterests))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [interestsKey])
-
-  const toggleDiscover = (id: string) => {
-    setDiscover((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      onSetInterests([...next])
-      return next
-    })
-  }
+  // Matches against the user's saved interests (edited in the 🎯 Interests
+  // modal — the single home of that concept; no chip row duplicated here).
+  const discover = new Set(myInterests)
 
   // Real members: server already applied the visibility ladder, blocks and
   // the 2 h freshness window; the 60 km feed is scoped down to 50 km here.
@@ -279,18 +264,11 @@ export default function SidePanel({
 
         {tab === 'people' && (
           <>
-            <div className="friend-section">Discover — shared interests · {DISCOVER_RADIUS_KM} km</div>
-            <div className="discover-chips">
-              {INTERESTS.map((i) => (
-                <button
-                  key={i.id}
-                  className={`chip${discover.has(i.id) ? ' active' : ''}`}
-                  style={{ ['--c' as string]: i.color }}
-                  onClick={() => toggleDiscover(i.id)}
-                >
-                  {i.emoji} {i.label}
-                </button>
-              ))}
+            <div className="friend-section discover-head">
+              <span>Discover — shared interests · {DISCOVER_RADIUS_KM} km</span>
+              <button className="discover-edit" onClick={onEditInterests}>
+                🎯 {discover.size > 0 ? 'Edit' : 'Pick'}
+              </button>
             </div>
             {discover.size === 0 ? (
               <p className="discover-hint">

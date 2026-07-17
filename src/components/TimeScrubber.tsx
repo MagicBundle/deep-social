@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { SocialEvent } from '../types'
 
 interface Props {
@@ -28,10 +29,43 @@ const phaseEmoji = (d: Date) => {
 
 // The map's time machine: scrub forward through the next 12 hours to see
 // which events will be on. Presence dots dim while scrubbed — people are
-// only ever shown "now".
+// only ever shown "now". Rests as a small pill (quiet-map rule); expands
+// on tap and collapses again after a few idle seconds at "Now" — while
+// scrubbed it always stays open, since an active time shift must never
+// be controllable-but-invisible.
 export default function TimeScrubber({ offsetMin, onChange, events }: Props) {
+  const [open, setOpen] = useState(false)
+  const timer = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (timer.current) {
+      clearTimeout(timer.current)
+      timer.current = null
+    }
+    if (open && offsetMin === 0) {
+      timer.current = window.setTimeout(() => setOpen(false), 6000)
+    }
+    return () => {
+      if (timer.current) clearTimeout(timer.current)
+    }
+  }, [open, offsetMin])
+
   const scrubbed = offsetMin > 0
   const at = new Date(Date.now() + offsetMin * 60_000)
+
+  if (!open && !scrubbed) {
+    return (
+      <button
+        className="time-scrubber collapsed"
+        onClick={() => setOpen(true)}
+        aria-label="Preview the next 12 hours"
+        title="Preview the next 12 hours"
+      >
+        <span className="ts-phase">{phaseEmoji(at)}</span>
+        <span className="ts-time">Now</span>
+      </button>
+    )
+  }
   const timeLabel = scrubbed
     ? at.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
     : 'Now'
