@@ -4,10 +4,11 @@ import { getConversation, markDmRead, sendDm, subscribeToDirectMessages } from '
 
 interface Props {
   friend: FriendEntry
+  onReport: () => void
   onClose: () => void
 }
 
-export default function FriendChatDrawer({ friend, onClose }: Props) {
+export default function FriendChatDrawer({ friend, onReport, onClose }: Props) {
   const [messages, setMessages] = useState<DirectMessage[]>([])
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -71,6 +72,14 @@ export default function FriendChatDrawer({ friend, onClose }: Props) {
             <small>Direct message · friends</small>
           </div>
         </div>
+        <button
+          className="dm-report"
+          onClick={onReport}
+          title="Report this conversation"
+          aria-label="Report this conversation"
+        >
+          ⚑
+        </button>
         <button className="card-close" onClick={onClose} aria-label="Close chat">
           ×
         </button>

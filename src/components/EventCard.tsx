@@ -17,6 +17,8 @@ interface Props {
   onNavigate: (lat: number, lng: number, label: string) => void
   onNotify: (text: string) => void
   onOpenAttendee: (a: Attendee) => void
+  /** report this pin (real backend pins only) */
+  onReport: (pinId: string) => void
   onClose: () => void
 }
 
@@ -31,6 +33,7 @@ export default function EventCard({
   onNavigate,
   onNotify,
   onOpenAttendee,
+  onReport,
   onClose,
 }: Props) {
   const interest = interestFor(event.category)
@@ -195,6 +198,16 @@ export default function EventCard({
           >
             🗺️
           </button>
+          {vibesEnabled && pinId && (
+            <button
+              className="icon-btn"
+              title="Report this event"
+              aria-label="Report this event"
+              onClick={() => onReport(pinId)}
+            >
+              ⚑
+            </button>
+          )}
           <button
             className="icon-btn"
             title="Share (WhatsApp & more)"

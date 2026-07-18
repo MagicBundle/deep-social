@@ -599,6 +599,41 @@ export async function addVibe(postId: string, image: Blob): Promise<string> {
   return data as string
 }
 
+export type ReportKind = 'media' | 'pin' | 'profile' | 'dm'
+
+/** File a report against any content or user (DSA notice-and-action).
+ *  Returns the moderation contacts' user ids so the caller can fire a
+ *  best-effort alert push — the DB row is the source of truth either way. */
+export async function reportContent(
+  kind: ReportKind,
+  targetId: string,
+  reason?: string,
+): Promise<string[]> {
+  const { data, error } = await getSupabase().rpc('report_content', {
+    p_kind: kind,
+    p_target: targetId,
+    p_reason: reason ?? null,
+  })
+  if (error) fail('reportContent', error.message)
+  return ((data ?? []) as { user_id?: string }[] | string[]).map((r) =>
+    typeof r === 'string' ? r : (r.user_id as string),
+  )
+}
+
+/** Record the sign-in 16+ confirmation server-side, once (evidence of
+ *  "reasonable efforts", GDPR Art. 8). Safe to call repeatedly. */
+export async function confirmAge(): Promise<void> {
+  const supabase = getSupabase()
+  const uid = (await supabase.auth.getUser()).data.user?.id
+  if (!uid) return
+  const { error } = await supabase
+    .from('profiles')
+    .update({ age_confirmed_at: new Date().toISOString() })
+    .eq('id', uid)
+    .is('age_confirmed_at', null)
+  if (error) console.warn('[age] confirm failed:', error.message)
+}
+
 export async function reportVibe(mediaId: string, reason?: string): Promise<void> {
   const { error } = await getSupabase().rpc('report_media', {
     media_id: mediaId,

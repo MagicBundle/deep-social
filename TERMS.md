@@ -17,10 +17,13 @@ to them. See also the [Privacy Notice](PRIVACY.md).
 
 ## Who can use it
 
+- **You must be 16 or older.** The app asks you to confirm this before you
+  sign in, and the confirmation is recorded on your profile. Deep Social is
+  not directed at children, and under-16s may not use it (in Luxembourg,
+  processing a younger person's data would also require parental consent —
+  which this service does not support).
 - You sign in with a **Google or Apple account**, so you need to be able to hold
   one (and to meet that provider's own age and eligibility rules).
-- If you're not old enough to agree to terms like these where you live, please
-  don't use the app.
 
 ## Your content and how you may use the app
 
@@ -41,14 +44,25 @@ to them. See also the [Privacy Notice](PRIVACY.md).
   to unsafe places, private property, or set up anything that could get someone
   hurt.
 
-## Moderation and objectionable content
+## Moderation, reporting, and your rights in that process
 
-- Content may be **removed** and accounts **suspended or terminated** at the
-  operator's discretion, especially for anything above.
-- You can **report** photos from the event card and **block** any user from their
-  card or profile.
-- **Reports of objectionable content are reviewed and acted on within 24 hours.**
-  Confirmed violations are removed and the responsible account is dealt with.
+- You can **report anything**: event pins and photos (⚑ on the event card),
+  people (Report on their card or profile), and message conversations (⚑ in
+  the chat header). Pick a reason; adding detail helps. The person you report
+  is **not told who reported them**.
+- **Reports are reviewed and acted on within 24 hours.** Confirmed violations
+  are removed and the responsible account is dealt with (warning, content
+  removal, suspension, or termination, depending on severity).
+- **If your content or account is actioned, you will be told what was
+  actioned and why** (a short statement of reasons), through the app or the
+  contact channel below.
+- **If you think we got it wrong, reply through the contact channel** — say
+  which decision you're contesting and why, and it will be re-reviewed by a
+  human. You also always have the right to complain to the Luxembourg
+  Digital Services Coordinator or to a court.
+- Content may also be removed and accounts suspended at the operator's
+  discretion for anything in the list above, with the same statement of
+  reasons.
 
 ## Ending your use
 

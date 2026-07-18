@@ -39,6 +39,8 @@ import {
   myFriendships,
   publishHeartbeat,
   removeFriend,
+  confirmAge,
+  reportContent,
   requestFriend,
   respondFriend,
   setMyAvatarEmoji,
@@ -73,6 +75,7 @@ import BlockedUsersModal from './components/BlockedUsersModal'
 import DeleteAccountModal from './components/DeleteAccountModal'
 import ConstellationModal from './components/ConstellationModal'
 import InterestsModal from './components/InterestsModal'
+import ReportModal, { type ReportTarget } from './components/ReportModal'
 import GuardianModal from './components/GuardianModal'
 import GuardianBar from './components/GuardianBar'
 import { neutralMapsLink, openDirections } from './services/navigation'
@@ -479,6 +482,17 @@ export default function App() {
     })
   }
 
+  // Persist the sign-in 16+ confirmation to the profile (set-once,
+  // evidence of "reasonable efforts" under GDPR Art. 8).
+  useEffect(() => {
+    if (!backendLive) return
+    try {
+      if (localStorage.getItem('ds-age16-v1') === '1') void confirmAge()
+    } catch {
+      /* private mode */
+    }
+  }, [backendLive])
+
   // My visibility mode + current vibe (for the profile menu).
   useEffect(() => {
     if (!backendLive) return
@@ -648,6 +662,18 @@ export default function App() {
     removeFriend(userId)
       .then(refreshFriends)
       .catch(() => toast('Could not remove, try again'))
+  }
+
+  // Universal notice-and-action: any surface can open the report modal;
+  // submission writes the report and best-effort alerts the moderation
+  // contact(s) so the 24 h review promise in the Terms is operable.
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null)
+
+  const submitReport = async (reason: string) => {
+    if (!reportTarget) return
+    const ops = await reportContent(reportTarget.kind, reportTarget.targetId, reason)
+    for (const op of ops) notify(op, 'report', `${reportTarget.kind}: ${reason.slice(0, 100)}`)
+    toast('Report sent — reviewed within 24 h. Thank you.')
   }
 
   const handleBlockUser = (userId: string, name?: string) => {
@@ -1235,6 +1261,9 @@ export default function App() {
           onNavigate={handleNavigate}
           onNotify={toast}
           onOpenAttendee={handleOpenAttendee}
+          onReport={(pinId) =>
+            setReportTarget({ kind: 'pin', targetId: pinId, label: selectedEvent.title })
+          }
           onClose={() => setSelectedEventId(null)}
         />
       )}
@@ -1257,7 +1286,15 @@ export default function App() {
         />
       )}
 
-      {dmFriend && <FriendChatDrawer friend={dmFriend} onClose={() => setDmFriend(null)} />}
+      {dmFriend && (
+        <FriendChatDrawer
+          friend={dmFriend}
+          onReport={() =>
+            setReportTarget({ kind: 'dm', targetId: dmFriend.userId, label: dmFriend.displayName })
+          }
+          onClose={() => setDmFriend(null)}
+        />
+      )}
 
       {profileFriend && (
         <FriendProfileModal
@@ -1299,6 +1336,13 @@ export default function App() {
             setProfileFriend(null)
             handleRemoveFriend(profileFriend.userId)
           }}
+          onReport={() =>
+            setReportTarget({
+              kind: 'profile',
+              targetId: profileFriend.userId,
+              label: profileFriend.displayName,
+            })
+          }
           onBlock={() => handleBlockUser(profileFriend.userId, profileFriend.displayName)}
           onClose={() => setProfileFriend(null)}
         />
@@ -1313,12 +1357,29 @@ export default function App() {
           onAccept={() => handleRespondFriend(selectedPerson.id, true)}
           onMessage={() => handlePersonMessage(selectedPerson)}
           onNavigate={handleNavigate}
+          onReport={() =>
+            setReportTarget({
+              kind: 'profile',
+              targetId: selectedPerson.id,
+              label: selectedPerson.identified
+                ? (selectedPerson.displayName ?? 'this member')
+                : 'this person',
+            })
+          }
           onBlock={() => handleBlockUser(selectedPerson.id, selectedPerson.displayName)}
           onClose={() => setPersonId(null)}
         />
       )}
 
       {blockedOpen && <BlockedUsersModal onNotify={toast} onClose={() => setBlockedOpen(false)} />}
+
+      {reportTarget && (
+        <ReportModal
+          target={reportTarget}
+          onSubmit={submitReport}
+          onClose={() => setReportTarget(null)}
+        />
+      )}
 
       {interestsOpen && (
         <InterestsModal

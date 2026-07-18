@@ -20,6 +20,7 @@ interface Props {
   onDecline: () => void
   onConnect: () => void
   onRemove: () => void
+  onReport: () => void
   onBlock: () => void
   onClose: () => void
 }
@@ -37,6 +38,7 @@ export default function FriendProfileModal({
   onDecline,
   onConnect,
   onRemove,
+  onReport,
   onBlock,
   onClose,
 }: Props) {
@@ -193,6 +195,9 @@ export default function FriendProfileModal({
               Remove friend
             </button>
           )}
+          <button className="fp-remove" onClick={onReport}>
+            Report
+          </button>
           <button className="fp-remove" onClick={onBlock}>
             Block {friend.displayName}
           </button>

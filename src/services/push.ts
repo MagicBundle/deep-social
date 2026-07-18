@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { getSupabase, isBackendConfigured } from './supabase'
 
-export type NotifyKind = 'dm' | 'friend_request' | 'friend_accepted'
+export type NotifyKind = 'dm' | 'friend_request' | 'friend_accepted' | 'report'
 
 /** Fire-and-forget push to another user via the `push` Edge Function. Works
  *  from web and native (a web sender can still push a mobile recipient).

@@ -111,15 +111,27 @@ Deno.serve(async (req) => {
 
     const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
-    // Anti-spam: a friendship row (any status) must link the two.
-    const { data: fr } = await admin
-      .from('friendships')
-      .select('status')
-      .or(
-        `and(requester_id.eq.${user.id},addressee_id.eq.${to}),and(requester_id.eq.${to},addressee_id.eq.${user.id})`,
-      )
-      .limit(1)
-    if (!fr || fr.length === 0) return json({ error: 'not permitted' }, 403)
+    if (kind === 'report') {
+      // Report alerts may only target designated moderation contacts —
+      // any signed-in user can send one (that's the point of a report),
+      // but only to the operator(s).
+      const { data: mc } = await admin
+        .from('moderation_contacts')
+        .select('user_id')
+        .eq('user_id', to)
+        .limit(1)
+      if (!mc || mc.length === 0) return json({ error: 'not permitted' }, 403)
+    } else {
+      // Anti-spam: a friendship row (any status) must link the two.
+      const { data: fr } = await admin
+        .from('friendships')
+        .select('status')
+        .or(
+          `and(requester_id.eq.${user.id},addressee_id.eq.${to}),and(requester_id.eq.${to},addressee_id.eq.${user.id})`,
+        )
+        .limit(1)
+      if (!fr || fr.length === 0) return json({ error: 'not permitted' }, 403)
+    }
 
     const { data: prof } = await admin
       .from('profiles')
@@ -135,10 +147,16 @@ Deno.serve(async (req) => {
       alert = `${name} wants to connect`
     } else if (kind === 'friend_accepted') {
       alert = `${name} accepted your friend request 🎉`
+    } else if (kind === 'report') {
+      title = '⚑ New content report'
+      if (!alert) alert = 'Open the Supabase dashboard to review'
     } else if (!alert) {
       alert = 'sent you a message'
     }
-    const data = { type: kind === 'dm' ? 'dm' : 'friend', friendId: user.id }
+    const data = {
+      type: kind === 'dm' ? 'dm' : kind === 'report' ? 'report' : 'friend',
+      friendId: user.id,
+    }
 
     const { data: tokens } = await admin
       .from('device_push_tokens')

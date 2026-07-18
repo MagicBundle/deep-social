@@ -9,6 +9,7 @@ interface Props {
   onAccept: () => void
   onMessage: () => void
   onNavigate: (lat: number, lng: number, label: string) => void
+  onReport: () => void
   onBlock: () => void
   onClose: () => void
 }
@@ -24,6 +25,7 @@ export default function PersonCard({
   onAccept,
   onMessage,
   onNavigate,
+  onReport,
   onBlock,
   onClose,
 }: Props) {
@@ -150,9 +152,14 @@ export default function PersonCard({
         )}
       </div>
 
-      <button className="fp-remove pc-block" onClick={onBlock}>
-        Block {person.identified ? (person.displayName ?? 'this member') : 'this person'}
-      </button>
+      <div className="fp-danger pc-danger">
+        <button className="fp-remove" onClick={onReport}>
+          Report
+        </button>
+        <button className="fp-remove" onClick={onBlock}>
+          Block {person.identified ? (person.displayName ?? 'this member') : 'this person'}
+        </button>
+      </div>
     </div>
   )
 }

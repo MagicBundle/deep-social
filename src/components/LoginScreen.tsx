@@ -33,10 +33,25 @@ function ModeTag({ provider }: { provider: Provider }) {
   return <span className={`mode-tag ${mode}`}>{mode}</span>
 }
 
+/** localStorage key for the 16+ / terms confirmation (per device; the
+ *  server-side timestamp lands on the profile after real sign-in). */
+export const AGE_OK_KEY = 'ds-age16-v1'
+
 export default function LoginScreen({ onLogin }: Props) {
   const [connecting, setConnecting] = useState<Provider | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [ageOk, setAgeOk] = useState(() => localStorage.getItem(AGE_OK_KEY) === '1')
   const googleLive = providerMode('google') === 'live'
+
+  const toggleAge = (checked: boolean) => {
+    setAgeOk(checked)
+    try {
+      if (checked) localStorage.setItem(AGE_OK_KEY, '1')
+      else localStorage.removeItem(AGE_OK_KEY)
+    } catch {
+      /* private mode — session-only is fine */
+    }
+  }
 
   // Load the GIS script before the click so the consent popup stays within
   // the browser's user-gesture window.
@@ -90,14 +105,41 @@ export default function LoginScreen({ onLogin }: Props) {
           <li>💬 Jump into the chat, then meet in real life</li>
         </ul>
 
-        <div className="login-buttons">
-          <button className="sso-btn apple" onClick={() => handle('apple')}>
+        <label className="age-gate">
+          <input
+            type="checkbox"
+            checked={ageOk}
+            onChange={(e) => toggleAge(e.target.checked)}
+          />
+          <span>
+            I&apos;m <strong>16 or older</strong> and I accept the{' '}
+            <a
+              href="https://github.com/MagicBundle/deep-social/blob/main/TERMS.md"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Terms of Use
+            </a>{' '}
+            and{' '}
+            <a
+              href="https://github.com/MagicBundle/deep-social/blob/main/PRIVACY.md"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Privacy Notice
+            </a>
+            .
+          </span>
+        </label>
+
+        <div className={`login-buttons${ageOk ? '' : ' gated'}`}>
+          <button className="sso-btn apple" disabled={!ageOk} onClick={() => handle('apple')}>
             <AppleLogo /> Continue with Apple <ModeTag provider="apple" />
           </button>
-          <button className="sso-btn google" onClick={() => handle('google')}>
+          <button className="sso-btn google" disabled={!ageOk} onClick={() => handle('google')}>
             <GoogleLogo /> Continue with Google <ModeTag provider="google" />
           </button>
-          <button className="sso-btn guest" onClick={() => handle('guest')}>
+          <button className="sso-btn guest" disabled={!ageOk} onClick={() => handle('guest')}>
             Just looking? Explore the demo without an account →
           </button>
         </div>
