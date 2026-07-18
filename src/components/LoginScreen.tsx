@@ -113,19 +113,11 @@ export default function LoginScreen({ onLogin }: Props) {
           />
           <span>
             I&apos;m <strong>16 or older</strong> and I accept the{' '}
-            <a
-              href="https://github.com/MagicBundle/deep-social/blob/main/TERMS.md"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href={`${import.meta.env.BASE_URL}terms.html`} target="_blank" rel="noreferrer">
               Terms of Use
             </a>{' '}
             and{' '}
-            <a
-              href="https://github.com/MagicBundle/deep-social/blob/main/PRIVACY.md"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href={`${import.meta.env.BASE_URL}privacy.html`} target="_blank" rel="noreferrer">
               Privacy Notice
             </a>
             .
@@ -147,11 +139,7 @@ export default function LoginScreen({ onLogin }: Props) {
         <p className={`login-status${error ? ' error' : ''}`}>{statusText}</p>
         <p className="login-legal">
           Beta software — things may break and data may be reset.{' '}
-          <a
-            href="https://github.com/MagicBundle/deep-social/blob/main/PRIVACY.md"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a href={`${import.meta.env.BASE_URL}privacy.html`} target="_blank" rel="noreferrer">
             Privacy notice
           </a>
         </p>

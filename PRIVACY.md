@@ -4,8 +4,15 @@
 
 Deep Social is a **hobby project in beta testing**. It is not a commercial
 service. This notice explains, in plain language, what data the app handles
-so you can decide whether to participate. By signing in you consent to the
-processing described here. See also the [Terms of Use](TERMS.md).
+so you can decide whether to participate. See also the [Terms of Use](TERMS.md).
+
+Most processing happens because it **is the service you signed up for**
+(your profile, pins, photos, messages — GDPR "performance of a contract").
+Two things run on your **explicit, revocable consent**: sharing your live
+position with others (off by default — Ghost mode) and broadcasting a
+"tonight's vibe". Safety features (blocks, reports, the moderation log) rest
+on our **legitimate interest** in keeping the service safe. The service is
+**16+**; your age confirmation at sign-in is recorded as required evidence.
 
 ## What we store when you sign in with Google
 
@@ -70,6 +77,21 @@ processing described here. See also the [Terms of Use](TERMS.md).
   **Photon (komoot.io)**; these services see your IP address and, for address
   search, the text you type into the location search box — like any map
   website.
+
+## How long data is kept
+
+An automatic daily clean-up enforces these limits:
+
+- **"Tonight's vibe"** — gone after 3 hours.
+- **Your last map position** — hidden from others after 2 hours, wiped from
+  the database after 24 hours of inactivity.
+- **Push tokens** — deleted on sign-out, or after 60 days without use.
+- **Guardian sessions** — ended sessions deleted after 30 days.
+- **Event pins and their photos** — deleted 30 days after the event ends
+  (kept longer only while a report about them is still being handled).
+- **Messages, friendships, profile** — kept until you delete your account,
+  which removes them in one cascade.
+- **Reports** — kept as the moderation record of how each case was handled.
 
 ## Your rights (GDPR-style)
 

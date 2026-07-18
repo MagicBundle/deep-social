@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deep Social — Privacy Notice / Avis de confidentialité</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; background:#0b0d12; color:#e8ecf4; font:16px/1.65 -apple-system,'Segoe UI',system-ui,sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:40px 22px 80px; }
+  h1 { font-size:26px; } h1 span { background:linear-gradient(90deg,#7c3aed,#06b6d4); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  h2 { font-size:19px; margin-top:34px; border-bottom:1px solid #26304a; padding-bottom:6px; }
+  a { color:#67e8f9; } li { margin:6px 0; } .muted { color:#8b93a7; font-size:14px; }
+  .lang { display:inline-block; margin:14px 0 4px; padding:5px 14px; border:1px solid #26304a; border-radius:99px; font-size:13px; color:#8b93a7; }
+  hr.split { margin:56px 0 8px; border:0; border-top:2px solid #26304a; }
+</style>
+</head>
+<body>
+<main>
+<h1><span>Deep Social</span> — Privacy Notice (Beta)</h1>
+<p class="muted">Last updated: July 2026 · <a href="#fr">Version française ci-dessous</a> · The English version prevails. Canonical text: <a href="https://github.com/MagicBundle/deep-social/blob/main/PRIVACY.md">PRIVACY.md</a></p>
+
+<p>Deep Social is a <strong>hobby project in beta testing</strong>. It is not a commercial service. This notice explains, in plain language, what data the app handles so you can decide whether to participate. See also the <a href="terms.html">Terms of Use</a>.</p>
+<p>Most processing happens because it <strong>is the service you signed up for</strong> (your profile, pins, photos, messages — GDPR "performance of a contract"). Two things run on your <strong>explicit, revocable consent</strong>: sharing your live position with others (off by default — Ghost mode) and broadcasting a "tonight's vibe". Safety features (blocks, reports, the moderation log) rest on our <strong>legitimate interest</strong> in keeping the service safe. The service is <strong>16+</strong>; your age confirmation at sign-in is recorded as required evidence.</p>
+
+<h2>What we store when you sign in</h2>
+<ul>
+<li>Your <strong>name, email address, and profile photo URL</strong>, as provided by Google or Apple at sign-in. That's all — no contacts, no calendar, no other provider data.</li>
+<li>Your email is stored but <strong>never shown to other users</strong> (enforced at the database permission level, not just in the interface).</li>
+</ul>
+
+<h2>What we store when you use the app</h2>
+<ul>
+<li><strong>Event pins</strong> you create: title, activity type, time, optional description and venue label, and the pin's map coordinates. Pins are visible to all signed-in users.</li>
+<li><strong>Photos ("vibe checks")</strong> you attach to events. Photos are compressed on your device before upload and <strong>all metadata (including embedded GPS coordinates) is stripped</strong>. Photos are publicly accessible to anyone with the link and visible to all signed-in users.</li>
+<li><strong>Attendance</strong> (which events you joined) — visible to all signed-in users as counts and to the event's participants.</li>
+<li><strong>Friendships and friend requests</strong> — visible only to the two people involved.</li>
+<li><strong>Chosen avatar emoji and interests</strong>, if you set them.</li>
+<li><strong>Your block list</strong> — visible only to you, never disclosed to the blocked person.</li>
+<li><strong>Reports you file</strong> (what, why, when). Visible only to the operator; the reported person is never told who reported them. Kept while the case is open and as evidence of how it was handled.</li>
+<li><strong>The date you confirmed being 16 or older</strong> at sign-in — stored once as required evidence of that check.</li>
+<li><strong>A device push token</strong>, if you use the iOS app and allow notifications — removed on sign-out.</li>
+<li><strong>"Tonight's vibe"</strong>, if you set one — a transient tag that expires after ~3 hours, shown to people nearby even in anonymous Observer mode (never with your name or photo). While visible (Observer/Beacon), the app also sends ephemeral presence signals (position at your chosen precision + vibe) that are not stored as a movement history.</li>
+</ul>
+
+<h2>What we do NOT do</h2>
+<ul>
+<li>No analytics, no advertising trackers, no cookies beyond a login session stored in your own browser.</li>
+<li>Your <strong>device location is never uploaded</strong> unless you opt in. Visibility is <strong>off by default</strong> ("Ghost") and you control it in Profile → Privacy &amp; visibility: <strong>Ghost</strong> (invisible), <strong>Observer</strong> (anonymous dot, interests only, location blurred to ~500&nbsp;m), <strong>Beacon</strong> (full profile, precise location). Accepted connections always see your full profile.</li>
+<li>We never sell or share data with third parties for their own purposes.</li>
+</ul>
+
+<h2>How long data is kept</h2>
+<ul>
+<li><strong>"Tonight's vibe"</strong> — gone after 3 hours.</li>
+<li><strong>Your last map position</strong> — hidden from others after 2 hours, wiped after 24 hours of inactivity.</li>
+<li><strong>Push tokens</strong> — deleted on sign-out, or after 60 days without use.</li>
+<li><strong>Guardian sessions</strong> — ended sessions deleted after 30 days.</li>
+<li><strong>Event pins and their photos</strong> — deleted 30 days after the event ends (kept longer only while a report about them is open).</li>
+<li><strong>Messages, friendships, profile</strong> — kept until you delete your account (one cascade).</li>
+<li><strong>Reports</strong> — kept as the moderation record.</li>
+</ul>
+
+<h2>Where the data lives (processors)</h2>
+<ul>
+<li><strong>Supabase</strong> (database, authentication, photo storage) — hosts all app data.</li>
+<li><strong>GitHub Pages</strong> — serves the app itself (static files only).</li>
+<li>Map tiles from <strong>CARTO/OpenStreetMap</strong>; address search via <strong>Photon (komoot.io)</strong> — these services see your IP address and, for search, the text you type.</li>
+</ul>
+
+<h2>Your rights (GDPR)</h2>
+<p>Beta data is not sacred: <strong>the database may be reset at any time</strong> during testing. At any time you can request a copy of your data, correction, or <strong>complete deletion</strong> — deletion is <strong>self-serve</strong>: profile menu → <strong>Delete account</strong> (server-side cascade). For a copy or correction — or deletion if you can't sign in — open an issue at <a href="https://github.com/MagicBundle/deep-social/issues">github.com/MagicBundle/deep-social/issues</a>. You can also complain to the CNPD (<a href="https://cnpd.public.lu">cnpd.public.lu</a>).</p>
+
+<p class="muted">Good-faith transparency for a small beta, written by the project author — not legal advice; provided as-is.</p>
+
+<hr class="split" id="fr" />
+<span class="lang">🇫🇷 Version française (courtoisie — la version anglaise fait foi)</span>
+
+<h1><span>Deep Social</span> — Avis de confidentialité (bêta)</h1>
+<p>Deep Social est un <strong>projet personnel en phase de test</strong>, sans caractère commercial. Cet avis explique, en langage clair, quelles données l'application traite. Voir aussi les <a href="terms.html#fr">Conditions d'utilisation</a>.</p>
+<p>L'essentiel du traitement correspond au <strong>service que vous avez demandé</strong> (profil, épingles, photos, messages — « exécution du contrat » au sens du RGPD). Deux traitements reposent sur votre <strong>consentement explicite et révocable</strong> : le partage de votre position en direct (désactivé par défaut — mode « Ghost ») et la diffusion d'un « vibe du soir ». Les fonctions de sécurité (blocages, signalements, journal de modération) relèvent de notre <strong>intérêt légitime</strong>. Le service est réservé aux <strong>16 ans et plus</strong> ; votre confirmation d'âge est enregistrée comme preuve requise.</p>
+
+<h2>Ce que nous stockons à la connexion</h2>
+<ul>
+<li>Vos <strong>nom, adresse e-mail et URL de photo de profil</strong>, fournis par Google ou Apple. Rien d'autre.</li>
+<li>Votre e-mail n'est <strong>jamais montré aux autres utilisateurs</strong> (appliqué au niveau des permissions de la base de données).</li>
+</ul>
+
+<h2>Ce que nous stockons à l'usage</h2>
+<ul>
+<li><strong>Épingles d'événements</strong> : titre, type, horaire, description et lieu facultatifs, coordonnées. Visibles par tous les utilisateurs connectés.</li>
+<li><strong>Photos (« vibe checks »)</strong> : compressées sur votre appareil, <strong>métadonnées (y compris GPS) supprimées</strong>. Accessibles publiquement via leur lien.</li>
+<li><strong>Participation</strong> aux événements — visible en tant que compteur et par les participants.</li>
+<li><strong>Amitiés et demandes</strong> — visibles uniquement des deux personnes concernées.</li>
+<li><strong>Avatar emoji et centres d'intérêt</strong>, si définis.</li>
+<li><strong>Votre liste de blocage</strong> — visible de vous seul·e ; la personne bloquée n'est pas informée.</li>
+<li><strong>Vos signalements</strong> (quoi, pourquoi, quand) — visibles du seul opérateur ; la personne signalée n'apprend jamais qui l'a signalée. Conservés pendant le traitement du dossier et comme trace de la décision.</li>
+<li><strong>La date de votre confirmation d'âge (16+)</strong> — enregistrée une fois, comme preuve.</li>
+<li><strong>Un jeton de notification</strong> (app iOS, si autorisé) — supprimé à la déconnexion.</li>
+<li><strong>« Vibe du soir »</strong> — étiquette éphémère (~3 h), montrée aux personnes à proximité, même en mode Observer anonyme (jamais avec votre nom ou photo). En visibilité Observer/Beacon, l'app émet des signaux de présence éphémères, non conservés comme historique de déplacement.</li>
+</ul>
+
+<h2>Ce que nous NE faisons PAS</h2>
+<ul>
+<li>Pas d'analytique, pas de traceurs publicitaires, pas de cookies au-delà de la session de connexion stockée dans votre navigateur.</li>
+<li>Votre <strong>position n'est jamais envoyée</strong> sans votre accord. La visibilité est <strong>désactivée par défaut</strong> (« Ghost ») : <strong>Ghost</strong> (invisible), <strong>Observer</strong> (point anonyme, position floutée à ~500&nbsp;m), <strong>Beacon</strong> (profil complet, position précise). Vos ami·e·s accepté·e·s vous voient toujours.</li>
+<li>Nous ne vendons ni ne partageons jamais vos données à des tiers pour leurs propres fins.</li>
+</ul>
+
+<h2>Durées de conservation</h2>
+<ul>
+<li><strong>« Vibe du soir »</strong> — effacé après 3 heures.</li>
+<li><strong>Dernière position</strong> — invisible après 2 h, effacée après 24 h d'inactivité.</li>
+<li><strong>Jetons de notification</strong> — supprimés à la déconnexion ou après 60 jours sans usage.</li>
+<li><strong>Sessions Guardian</strong> terminées — supprimées après 30 jours.</li>
+<li><strong>Épingles et photos</strong> — supprimées 30 jours après la fin de l'événement (sauf signalement en cours).</li>
+<li><strong>Messages, amitiés, profil</strong> — conservés jusqu'à la suppression de votre compte (cascade).</li>
+<li><strong>Signalements</strong> — conservés comme journal de modération.</li>
+</ul>
+
+<h2>Où résident les données (sous-traitants)</h2>
+<ul>
+<li><strong>Supabase</strong> (base de données, authentification, stockage des photos).</li>
+<li><strong>GitHub Pages</strong> (fichiers statiques de l'application).</li>
+<li>Tuiles cartographiques <strong>CARTO/OpenStreetMap</strong> ; recherche d'adresses <strong>Photon (komoot.io)</strong> — ces services voient votre adresse IP et le texte recherché.</li>
+</ul>
+
+<h2>Vos droits (RGPD)</h2>
+<p>Pendant la bêta, <strong>la base de données peut être réinitialisée à tout moment</strong>. Vous pouvez à tout moment demander une copie, une rectification, ou la <strong>suppression complète</strong> — en libre-service : menu du profil → <strong>Delete account</strong>. Pour une copie ou une rectification — ou une suppression si vous ne pouvez plus vous connecter — ouvrez un ticket sur <a href="https://github.com/MagicBundle/deep-social/issues">github.com/MagicBundle/deep-social/issues</a>. Vous pouvez aussi saisir la CNPD (<a href="https://cnpd.public.lu">cnpd.public.lu</a>).</p>
+
+<p class="muted">Transparence de bonne foi pour une petite bêta — ceci n'est pas un avis juridique ; service fourni « en l'état ».</p>
+</main>
+</body>
+</html>
