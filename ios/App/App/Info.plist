@@ -66,5 +66,7 @@
 	<string>Used to take photos for event Vibe Checks.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Used to pick a photo for event Vibe Checks.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
