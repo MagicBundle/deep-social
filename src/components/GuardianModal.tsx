@@ -48,6 +48,11 @@ export default function GuardianModal({ friends, onStart, onClose }: Props) {
           Meeting someone new? Pick a friend to watch over you. They'll see you live on the map,
           get a message when you start, and an alert if you don't check in.
         </p>
+        <p className="guardian-disclaimer">
+          ⚠️ Guardian is a convenience feature, not a safety guarantee. It depends on your phone's
+          battery and signal and can be delayed or fail. Don't rely on it in an emergency — call
+          your local emergency number (112 in the EU).
+        </p>
 
         {accepted.length === 0 ? (
           <p className="empty-state">

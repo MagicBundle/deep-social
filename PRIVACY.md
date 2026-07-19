@@ -8,11 +8,15 @@ so you can decide whether to participate. See also the [Terms of Use](TERMS.md).
 
 Most processing happens because it **is the service you signed up for**
 (your profile, pins, photos, messages — GDPR "performance of a contract").
-Two things run on your **explicit, revocable consent**: sharing your live
-position with others (off by default — Ghost mode) and broadcasting a
-"tonight's vibe". Safety features (blocks, reports, the moderation log) rest
-on our **legitimate interest** in keeping the service safe. The service is
-**16+**; your age confirmation at sign-in is recorded as required evidence.
+By default you appear to people nearby as an **anonymous Observer** — your
+interests only, no name or photo, location blurred to ~500 m — which we rely
+on our **legitimate interest** in making a social-discovery map useful; you
+can become invisible (**Ghost**) with one tap at any time. Two things run on
+your **explicit, revocable consent**: being fully identified to strangers
+(**Beacon**) and broadcasting a "tonight's vibe". Safety features (blocks,
+reports, the moderation log) rest on our **legitimate interest** in keeping
+the service safe. The service is **16+**; your age confirmation at sign-in is
+recorded as required evidence.
 
 ## What we store when you sign in with Google
 
@@ -53,20 +57,28 @@ on our **legitimate interest** in keeping the service safe. The service is
   presence signals (position at your chosen precision + vibe) that are not
   stored as a movement history.
 
+## Your location and who can see you
+
+You control this any time in Profile → Privacy & visibility. There are three
+modes; the map centres on you inside your browser regardless of which you pick.
+
+- **Ghost** — invisible to strangers, and **nothing about your location is
+  uploaded**.
+- **Observer** *(the default)* — you appear to nearby strangers as an
+  anonymous dot showing only your interests; your name and photo are withheld
+  and your shown location is blurred to ~500 m. Your precise position *is*
+  uploaded, but only so accepted friends can find you — it is never shown to
+  strangers.
+- **Beacon** — your full profile and precise location are visible to people
+  nearby.
+
+Accepted connections always see your full profile and precise location
+regardless of this setting.
+
 ## What we do NOT do
 
 - No analytics, no advertising trackers, no cookies beyond a login session
   stored in your own browser (localStorage).
-- Your **device location is never uploaded** unless you opt in. It is used
-  inside your browser to center the map. Visibility to other people is
-  **off by default** ("Ghost" mode) and you control it in Profile → Privacy
-  & visibility:
-  - **Ghost** — invisible to strangers (default).
-  - **Observer** — you appear as an anonymous dot showing only your interests;
-    your name and photo are withheld and your location is blurred to ~500 m.
-  - **Beacon** — your full profile and precise location are visible to people
-    nearby.
-  Accepted connections always see your full profile regardless of this setting.
 - We never sell or share data with third parties for their own purposes.
 
 ## Where the data lives (processors)
@@ -102,9 +114,9 @@ testing. At any time you can request:
 - correction of your data,
 - **complete deletion** — this is now **self-serve**: profile menu → **Delete
   account**. It runs a server-side cascade that removes your profile, your event
-  pins, your photos' database records, your attendance, your friendships, and
-  your direct messages. (Photo *files* in storage are cleared manually during
-  beta.)
+  pins, your photos' database records, your attendance, your friendships, your
+  direct messages, and your archived event memories (Constellation). (Photo
+  *files* in storage are cleared manually during beta.)
 
 For a copy or correction of your data — or deletion if you can't sign in — open
 an issue at

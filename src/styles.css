@@ -2296,6 +2296,18 @@ strong.identity-link:hover {
   margin-top: 10px;
 }
 
+/* Guardian is a convenience tool, not a safety guarantee — say so, visibly */
+.guardian-disclaimer {
+  margin: -2px 0 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--live) 45%, transparent);
+  background: color-mix(in srgb, var(--live) 10%, transparent);
+  color: #fecdd3;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
 /* Simulated people are labeled so testers never mistake them for members */
 .demo-tag {
   display: inline-block;

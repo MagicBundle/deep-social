@@ -14,8 +14,9 @@ people and events appear as glowing pins, filtered by shared interests. The
 product compresses the distance between "I notice you exist" and "we actually
 met in real life" into a few taps — see who's out and what's happening, find
 the people who share your interests nearby, connect, chat, and meet. It is
-built privacy-first: you are invisible by default, and every layer of
-visibility is something you switch on deliberately. The current build is a
+built privacy-first: by default you appear only as an anonymous, location-
+blurred dot, becoming identifiable is always a deliberate opt-in, and full
+invisibility is one tap away. The current build is a
 functional beta, developed by a solo indie developer, targeting launch in the
 EU (Luxembourg) via the Apple App Store and the web.
 
@@ -61,11 +62,12 @@ beside it.
 How much a stranger can see of you is a graduated, user-controlled setting —
 this is the app's spine:
 
-- **Ghost** *(default)* — you are invisible to strangers. You can use the
-  whole app while being unseen.
-- **Observer** — you appear to nearby strangers as an *anonymous dot*: your
-  interests show, but your name and photo are withheld and your location is
-  blurred (snapped to a ~500 m grid).
+- **Ghost** — you are invisible to strangers. You can use the whole app while
+  being unseen.
+- **Observer** *(default)* — you appear to nearby strangers as an *anonymous
+  dot*: your interests show, but your name and photo are withheld and your
+  location is blurred (snapped to a ~500 m grid). Your precise position is
+  stored only so accepted friends can find you, never shown to strangers.
 - **Beacon** — your full profile and precise location are visible to people
   nearby.
 
@@ -333,7 +335,8 @@ database, which is worth understanding as an architectural strength.
 The app is being built for EU launch, and the compliance work is part of the
 product rather than an afterthought.
 
-- **GDPR** — privacy-protective defaults (Ghost, opt-in location, no
+- **GDPR** — privacy-protective defaults (anonymous, location-blurred
+  Observer by default; identification is opt-in; one-tap Ghost; no
   trackers/analytics/ads), server-enforced data minimisation, EXIF stripping,
   self-serve deletion, an enforced retention schedule, a per-operation
   legal-basis mapping (contract for the core service, consent only for

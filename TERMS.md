@@ -71,6 +71,18 @@ to them. See also the [Privacy Notice](PRIVACY.md).
 - We may **suspend or terminate** your access if you break these terms or put
   others at risk.
 
+## Safety features are not a safety guarantee
+
+**Guardian mode** (and any other safety-flavoured feature) is a **convenience
+tool, not a safety service or guarantee**. It relies on your phone's battery,
+signal, and permissions and on third-party networks, and its messages,
+location updates, and check-in alerts **may be delayed, incomplete, or fail
+entirely**. Do not rely on it in an emergency or as a substitute for
+contacting the emergency services (112 in the EU) or a trusted person. The
+project author does not monitor your meetups and is not responsible for your
+safety; you remain responsible for your own choices about who you meet, where,
+and when.
+
 ## No warranty, and limits on liability
 
 - The service comes with **no warranty of any kind**. It might be unavailable,
