@@ -251,6 +251,7 @@ export default function SidePanel({
                 <span className="row-text">
                   <strong>
                     {e.title}
+                    {!e.isPin && <em className="demo-tag">demo</em>}
                     {joined.has(e.id) && <em className="joined-tick"> ✓</em>}
                   </strong>
                   <small>

@@ -101,11 +101,15 @@ export default function EventCard({
           {interest.emoji}
         </span>
         <div>
-          <h3>{event.title}</h3>
+          <h3>
+            {event.title}
+            {!event.isPin && <em className="demo-tag">demo</em>}
+          </h3>
           <p className="card-meta">
             {event.venue} · <span className={isLive(event) ? 'live-text' : ''}>{timeLabel(event)}</span> ·{' '}
             {interest.label}
             {event.isPin && event.authorName ? ` · by ${event.authorName}` : ''}
+            {!event.isPin && ' · simulated event'}
           </p>
         </div>
       </div>
@@ -179,17 +183,22 @@ export default function EventCard({
           </div>
         )}
         <div className="card-actions">
-          <button
-            className="icon-btn"
-            title="Add to calendar"
-            aria-label="Add to calendar"
-            onClick={() => {
-              downloadIcs(event)
-              onNotify('Calendar file downloaded 📅')
-            }}
-          >
-            📅
-          </button>
+          {/* Calendar + Share only for real events: a simulated event must
+              never leave the app (a WhatsApp share would spread a deep link
+              to a fabricated event at a real venue). */}
+          {event.isPin && (
+            <button
+              className="icon-btn"
+              title="Add to calendar"
+              aria-label="Add to calendar"
+              onClick={() => {
+                downloadIcs(event)
+                onNotify('Calendar file downloaded 📅')
+              }}
+            >
+              📅
+            </button>
+          )}
           <button
             className="icon-btn"
             title="Walking directions"
@@ -208,20 +217,22 @@ export default function EventCard({
               ⚑
             </button>
           )}
-          <button
-            className="icon-btn"
-            title="Share (WhatsApp & more)"
-            aria-label="Share event"
-            onClick={() => {
-              shareEvent(event)
-                .then((how) =>
-                  onNotify(how === 'whatsapp' ? 'Opening WhatsApp to share 📤' : 'Shared 📤'),
-                )
-                .catch(() => {})
-            }}
-          >
-            📤
-          </button>
+          {event.isPin && (
+            <button
+              className="icon-btn"
+              title="Share (WhatsApp & more)"
+              aria-label="Share event"
+              onClick={() => {
+                shareEvent(event)
+                  .then((how) =>
+                    onNotify(how === 'whatsapp' ? 'Opening WhatsApp to share 📤' : 'Shared 📤'),
+                  )
+                  .catch(() => {})
+              }}
+            >
+              📤
+            </button>
+          )}
           <button className={`btn-join${joined ? ' joined' : ''}`} onClick={onJoin}>
             {joined ? 'Joined ✓' : 'Join meetup'}
           </button>

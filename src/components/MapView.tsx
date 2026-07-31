@@ -171,14 +171,16 @@ export default function MapView({
           zIndexOffset: 1000,
         })
         marker.on('click', () => onSelectRef.current(e.id))
-        marker.bindTooltip(`${e.title} · ${e.attendees.length} going`, {
+        marker.bindTooltip(`${e.title} · ${e.attendees.length} going${e.isPin ? '' : ' · demo'}`, {
           direction: 'top',
           offset: [0, -18],
         })
         marker.addTo(map)
         eventMarkers.current.set(e.id, marker)
       } else {
-        marker.setTooltipContent(`${e.title} · ${e.attendeeCount ?? e.attendees.length} going`)
+        marker.setTooltipContent(
+          `${e.title} · ${e.attendeeCount ?? e.attendees.length} going${e.isPin ? '' : ' · demo'}`,
+        )
         const el = marker.getElement()
         if (el) {
           const pin = el.querySelector('.e-pin')

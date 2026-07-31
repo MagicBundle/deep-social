@@ -179,13 +179,15 @@ export default function App() {
 
   const backendLive = isBackendConfigured() && Boolean(session?.real)
 
-  // Demo people retract as the real network arrives: once ≥3 real members
-  // are visible nearby, the simulated ambience yields everywhere at once
-  // (map, People tab, search, event stacks) via this single filter.
-  const hideDemoPeople = backendLive && nearbyPeople.length >= 3
+  // The demo world retracts as the real network arrives: once ≥3 real
+  // members are visible nearby, the simulated ambience — people AND their
+  // fabricated events — yields everywhere at once (map, panel lists,
+  // search, event stacks) via this single filter. Events previously never
+  // retracted, leaving fake events at real venues on real users' maps.
+  const hideDemoWorld = backendLive && nearbyPeople.length >= 3
   const displayWorld = {
-    members: hideDemoPeople ? [] : world.members,
-    events: [...userPins, ...world.events],
+    members: hideDemoWorld ? [] : world.members,
+    events: [...userPins, ...(hideDemoWorld ? [] : world.events)],
   }
   const worldRef = useRef(displayWorld)
   worldRef.current = displayWorld
