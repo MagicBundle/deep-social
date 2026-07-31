@@ -75,6 +75,7 @@ import BlockedUsersModal from './components/BlockedUsersModal'
 import DeleteAccountModal from './components/DeleteAccountModal'
 import ConstellationModal from './components/ConstellationModal'
 import InterestsModal from './components/InterestsModal'
+import InterestOnboarding from './components/InterestOnboarding'
 import ReportModal, { type ReportTarget } from './components/ReportModal'
 import GuardianModal from './components/GuardianModal'
 import GuardianBar from './components/GuardianBar'
@@ -147,6 +148,12 @@ export default function App() {
   const [myVibe, setMyVibe_] = useState<string | null>(null)
   const [myInterests, setMyInterests_] = useState<string[]>([])
   const [interestsOpen, setInterestsOpen] = useState(false)
+  /** profile id the first-run interest picker was opened FOR (null = closed).
+   *  Keyed by id so an account switch can never stamp the wrong user. */
+  const [onboardFor, setOnboardFor] = useState<string | null>(null)
+  /** fallback "already handled" memory for when localStorage.setItem throws
+   *  (quota/private mode) — keeps a skip sticky at least for the session */
+  const onboardDone = useRef<Set<string>>(new Set())
   const [instagramHandle, setInstagramHandle] = useState<string | undefined>(undefined)
   const [shareOpen, setShareOpen] = useState(false)
   const [nearbyPeople, setNearbyPeople] = useState<NearbyProfile[]>([])
@@ -223,6 +230,7 @@ export default function App() {
     void unregisterPush()
     void signOutEverywhere()
     setSession(null)
+    setOnboardFor(null) // never leak the first-run picker to the next account
   }
 
   // Native push: register once we have a real session; route notification
@@ -254,7 +262,10 @@ export default function App() {
     // After adopting a backend session, pull the user's saved emoji avatar.
     const adopt = (s: Session | null) => {
       setSession(s)
-      if (!s) return
+      if (!s) {
+        setOnboardFor(null) // remote sign-out: drop any pending first-run picker
+        return
+      }
       getMyAvatarEmoji()
         .then((emoji) => {
           if (emoji) setSession((cur) => (cur ? { ...cur, avatarEmoji: emoji, avatar: emoji } : cur))
@@ -496,13 +507,32 @@ export default function App() {
   // My visibility mode + current vibe (for the profile menu).
   useEffect(() => {
     if (!backendLive) return
+    let cancelled = false
     getMyProfile()
       .then((p) => {
+        if (cancelled) return
         if (p) {
           setVisibility(p.visibilityMode)
           setMyVibe_(p.currentVibe ?? null)
-          setMyInterests_(p.interests ?? [])
+          // Don't clobber interests picked while this fetch was in flight
+          // (e.g. via the 🎯 modal on a slow connection).
+          if (myInterestsRef.current.length === 0) setMyInterests_(p.interests ?? [])
           setInstagramHandle(p.instagramHandle)
+          // First-run bootstrap: no interests yet → offer the picker, once
+          // per account. Two-sided matching means an empty profile is both
+          // undiscoverable and sees an empty Discover.
+          try {
+            if (
+              (p.interests ?? []).length === 0 &&
+              myInterestsRef.current.length === 0 &&
+              !onboardDone.current.has(p.id) &&
+              !localStorage.getItem(`ds-onboard:${p.id}`)
+            ) {
+              setOnboardFor(p.id)
+            }
+          } catch {
+            /* private mode — skip the prompt rather than nag every login */
+          }
           // Adopt the freely-chosen display name so it survives re-login
           // (OAuth would otherwise re-supply the real name each time).
           if (p.displayName) {
@@ -511,6 +541,9 @@ export default function App() {
         }
       })
       .catch((e) => console.warn('[visibility] load failed:', e))
+    return () => {
+      cancelled = true
+    }
   }, [backendLive])
 
   const handleSetVibe = (vibe: string | null) => {
@@ -1378,6 +1411,46 @@ export default function App() {
           target={reportTarget}
           onSubmit={submitReport}
           onClose={() => setReportTarget(null)}
+        />
+      )}
+
+      {onboardFor && backendLive && (
+        <InterestOnboarding
+          myInterests={myInterests}
+          onToggle={handleToggleInterest}
+          onDone={() => {
+            const id = onboardFor // the account this picker was opened FOR
+            setOnboardFor(null)
+            const markDone = () => {
+              try {
+                localStorage.setItem(`ds-onboard:${id}`, '1')
+              } catch {
+                onboardDone.current.add(id) // sticky for this session at least
+              }
+            }
+            const picks = myInterestsRef.current
+            if (picks.length === 0) {
+              markDone() // deliberate skip — don't nag on every login
+              return
+            }
+            // Per-toggle saves are fire-and-forget; the once-key must only be
+            // set on a CONFIRMED write, or a flaky network leaves the user
+            // silently undiscoverable with the bootstrap suppressed forever.
+            setMyInterests(picks)
+              .then(() => {
+                markDone()
+                toast(
+                  locatedPos
+                    ? "You're discoverable — here's who shares your interests"
+                    : "Saved — you'll be discoverable once location is on",
+                )
+                setTab('people') // land on Discover, as the CTA promises
+                setSheetSignal((n) => n + 1)
+              })
+              .catch(() => {
+                toast('Could not save your interests — try again under 🎯 in your profile')
+              })
+          }}
         />
       )}
 
