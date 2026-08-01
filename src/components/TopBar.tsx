@@ -41,6 +41,7 @@ interface Props {
   onAddFriend: (profile: ProfileHit) => void
   onNavigateTab: (tab: PanelTab) => void
   onLogoHome: () => void
+  onInvite: () => void
   onPickAvatar: (emoji: string | null) => void
   onSetName: (name: string) => void
   instagramHandle?: string
@@ -76,6 +77,7 @@ export default function TopBar({
   onAddFriend,
   onNavigateTab,
   onLogoHome,
+  onInvite,
   onPickAvatar,
   onSetName,
   instagramHandle,
@@ -367,6 +369,20 @@ export default function TopBar({
                   <span className="mr-label">🎟️ My meetups</span>
                   <span className="mr-state">{stats.meetupCount}</span>
                 </button>
+                {backendUser && (
+                  <button
+                    className="menu-row"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onInvite()
+                    }}
+                  >
+                    <span className="mr-label">💌 Invite a friend</span>
+                    <span className="mr-state">
+                      <span className="mr-chevron">›</span>
+                    </span>
+                  </button>
+                )}
 
                 {backendUser && (
                   <>

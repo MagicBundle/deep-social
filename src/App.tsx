@@ -67,7 +67,8 @@ import PinComposer, { type PinFormValues } from './components/PinComposer'
 import VibeComposer from './components/VibeComposer'
 import InterestChips from './components/InterestChips'
 import FriendChatDrawer from './components/FriendChatDrawer'
-import SharePresenceModal from './components/SharePresenceModal'
+import SharePresenceModal, { buildConnectLink } from './components/SharePresenceModal'
+import { inviteFriend } from './services/share'
 import DeepCard, { type ConnectOutcome } from './components/DeepCard'
 import PersonCard from './components/PersonCard'
 import FriendProfileModal, { type ProfilePerson } from './components/FriendProfileModal'
@@ -226,6 +227,18 @@ export default function App() {
           ? `Signed in with ${PROVIDER_NAME[newSession.provider]} as ${newSession.name} ✓`
           : `Signed in with ${PROVIDER_NAME[newSession.provider]} ✓ (demo mode)`,
     )
+  }
+
+  // Invite = the connect deep link framed for absent friends (the QR flow
+  // covers in-person). The link survives sign-up, so the recipient lands
+  // connected. Friend-to-friend is the entire distribution model.
+  const handleInvite = () => {
+    if (!session?.id) return
+    inviteFriend(session.name, buildConnectLink(session.id))
+      .then((how) =>
+        toast(how === 'whatsapp' ? 'Opening WhatsApp to invite 💌' : 'Invite sent 💌'),
+      )
+      .catch(() => {}) // AbortError: user closed the share sheet
   }
 
   const handleSignOut = () => {
@@ -1147,6 +1160,7 @@ export default function App() {
         onPick={handleSearchPick}
         onAddFriend={handleAddFriend}
         onLogoHome={handleLogoHome}
+        onInvite={handleInvite}
         onNavigateTab={(t) => {
           setTab(t)
           setSheetSignal((n) => n + 1)

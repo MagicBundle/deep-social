@@ -33,3 +33,25 @@ export async function shareEvent(e: SocialEvent): Promise<'shared' | 'whatsapp'>
   window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank', 'noopener')
   return 'whatsapp'
 }
+
+/** Invite a friend into the app via the inviter's connect deep link. The
+ *  link survives sign-up (stashed pre-OAuth, consumed once a real session
+ *  exists), so "open it and we're connected" is literally true. Same
+ *  share-sheet / WhatsApp fallback as events. */
+export async function inviteFriend(
+  inviterName: string,
+  url: string,
+): Promise<'shared' | 'whatsapp'> {
+  const text = `${inviterName} invited you to Deep Social — Luxembourg's live social map. Open this link, sign in, and you're connected:`
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Join me on Deep Social', text, url })
+      return 'shared'
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') throw err // user cancelled
+      // fall through to WhatsApp on any other failure
+    }
+  }
+  window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank', 'noopener')
+  return 'whatsapp'
+}
