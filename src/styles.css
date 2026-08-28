@@ -3316,3 +3316,12 @@ button.att-face:hover {
     text-align: center;
   }
 }
+
+
+/* Keyless dark basemap: standard OSM raster tiles inverted into the app's
+ * night palette (replaces CARTO dark_all, which now needs an API key).
+ * Applies only to the tile images — pins, rings, and overlays are in other
+ * panes and keep their true colors. */
+.dark-tiles {
+  filter: invert(1) hue-rotate(180deg) brightness(0.62) contrast(0.92) saturate(0.35);
+}

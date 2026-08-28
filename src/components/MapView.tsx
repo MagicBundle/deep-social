@@ -22,9 +22,12 @@ interface Props {
   timeOffsetMin: number
 }
 
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+// CARTO's dark basemap now requires an API key (tiles render an "API KEY
+// REQUIRED" watermark without one, 2026-08). Keyless fix: standard OSM
+// raster tiles, darkened client-side via the .dark-tiles CSS filter.
+const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 const TILE_ATTR =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 
 function eventIconHtml(event: SocialEvent, live: boolean, selected: boolean): string {
   const interest = interestFor(event.category)
@@ -111,7 +114,7 @@ export default function MapView({
       attributionControl: true,
     }).setView([DEFAULT_VIEW.lat, DEFAULT_VIEW.lng], DEFAULT_VIEW.zoom)
 
-    L.tileLayer(TILE_URL, { attribution: TILE_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(map)
+    L.tileLayer(TILE_URL, { attribution: TILE_ATTR, maxZoom: 19, className: 'dark-tiles' }).addTo(map)
     L.control.zoom({ position: 'bottomright' }).addTo(map)
 
     // Smooth member-marker motion is CSS-driven; disable it while zooming so
