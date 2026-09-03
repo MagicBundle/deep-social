@@ -22,12 +22,25 @@ interface Props {
   timeOffsetMin: number
 }
 
-// CARTO's dark basemap now requires an API key (tiles render an "API KEY
-// REQUIRED" watermark without one, 2026-08). Keyless fix: standard OSM
-// raster tiles, darkened client-side via the .dark-tiles CSS filter.
-const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-const TILE_ATTR =
+// Basemap: CARTO Dark Matter when a key is configured (free within CARTO's
+// 5M-tiles/month fair use; tiles watermark "API KEY REQUIRED" without one
+// since 2026-08), otherwise standard OSM raster darkened client-side via the
+// .dark-tiles CSS filter. The key is domain-restricted and public-by-design
+// like the other VITE_* vars (see .env.example).
+const CARTO_KEY = (import.meta.env.VITE_CARTO_KEY as string | undefined)?.trim()
+const OSM_ATTR =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+const TILES = CARTO_KEY
+  ? {
+      url: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(CARTO_KEY)}`,
+      attribution: `${OSM_ATTR} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
+      options: { subdomains: 'abcd', maxZoom: 19 } as L.TileLayerOptions,
+    }
+  : {
+      url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution: OSM_ATTR,
+      options: { maxZoom: 19, className: 'dark-tiles' } as L.TileLayerOptions,
+    }
 
 function eventIconHtml(event: SocialEvent, live: boolean, selected: boolean): string {
   const interest = interestFor(event.category)
@@ -114,7 +127,7 @@ export default function MapView({
       attributionControl: true,
     }).setView([DEFAULT_VIEW.lat, DEFAULT_VIEW.lng], DEFAULT_VIEW.zoom)
 
-    L.tileLayer(TILE_URL, { attribution: TILE_ATTR, maxZoom: 19, className: 'dark-tiles' }).addTo(map)
+    L.tileLayer(TILES.url, { attribution: TILES.attribution, ...TILES.options }).addTo(map)
     L.control.zoom({ position: 'bottomright' }).addTo(map)
 
     // Smooth member-marker motion is CSS-driven; disable it while zooming so

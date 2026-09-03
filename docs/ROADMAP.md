@@ -59,6 +59,13 @@ the checklist. **The scarce resource is operator attention, not code.**
   Boldest cheap experiment: run the first cluster night in person, map open.
 - **Custom domain** (~€10/yr) — the github.io URL reads as phishing in a
   WhatsApp invite. Universal links stay parked.
+- **Vector basemap (CARTO Dark Matter GL via `maplibre-gl-leaflet`)** —
+  deliberately *triggered*, not scheduled. Raster Dark Matter is back
+  (free key, `VITE_CARTO_KEY`); CARTO says raster tiles are "being retired"
+  but has no date and plans to freeze data rather than switch off. Switch
+  when any one fires: a raster shutoff date is announced; testers complain
+  about map crispness/style; or we want label/POI restyling. Use the hybrid
+  plugin path (keep every Leaflet marker line) — one session, not a rewrite.
 - **Storage orphans** — retention discards returned photo paths (pg_cron
   variant); bucket needs an occasional manual sweep + one honest sentence
   in PRIVACY.md.

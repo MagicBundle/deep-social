@@ -32,14 +32,16 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       # Pages serves the site at /deep-social/, so assets need that base path.
-      # All three vars are repository variables and public-by-design (they
+      # All four vars are repository variables and public-by-design (they
       # ship in the bundle; RLS is the security boundary) — unset means the
-      # corresponding feature runs in demo mode.
+      # corresponding feature runs in demo mode. VITE_CARTO_KEY unset falls
+      # back to keyless OSM tiles with a CSS dark filter.
       - run: npm run build -- --base=/deep-social/
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_CARTO_KEY: ${{ vars.VITE_CARTO_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
