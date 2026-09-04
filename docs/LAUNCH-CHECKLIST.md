@@ -68,11 +68,13 @@ select cron.schedule('deep-social-retention', '20 4 * * *',
 
 ## C. Push notifications 🟢
 
-- [ ] Confirm the APNs secrets still exist (set when push was first built):
+- [x] Confirm the APNs secrets still exist (set when push was first built):
       `APNS_BUNDLE_ID`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_KEY`
       (Dashboard → Edge Functions → Secrets, or `supabase secrets list`)
-- [ ] Redeploy the push function (it gained the `report` alert kind):
+- [x] Redeploy the push function (it gained the `report` alert kind):
       `supabase functions deploy push --no-verify-jwt`
+      (Both done 2026-09-04 — the secrets had never been set before; see
+      `docs/APPLE-KEYS.md` for which .p8 is which.)
 
 ---
 

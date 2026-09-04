@@ -15,6 +15,8 @@ supabase login                                   # opens a browser to authorize
 supabase link --project-ref liaiodfhlnwnzplrtdfk
 
 # Secrets (APNS_KEY reads the local .p8; the others you already have).
+# ⚠ Two .p8 files exist — 28B2LS4A65 is the APNs key. XS5RF4GL8H is the
+#   Sign in with Apple key and will NOT work here. See docs/APPLE-KEYS.md.
 # SUPABASE_URL / _ANON_KEY / _SERVICE_ROLE_KEY are injected automatically.
 supabase secrets set \
   APNS_KEY="$(cat AuthKey_28B2LS4A65.p8)" \
