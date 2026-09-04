@@ -13,10 +13,10 @@ Apply in the Supabase **SQL editor**, one file at a time, **in order**. Paste
 the contents of each file and run it. Already applied earlier: `0013`, `0014`,
 `0015` (an `already exists` error just means it's applied — skip it).
 
-- [ ] `supabase/migrations/0016_reporting_age.sql` — universal reporting + age
-- [ ] `supabase/migrations/0017_retention.sql` — retention sweep function
-- [ ] `supabase/migrations/0018_observer_default.sql` — Observer is the default
-- [ ] `supabase/migrations/0019_constellation_archive.sql` — Constellation fix
+- [x] `supabase/migrations/0016_reporting_age.sql` — universal reporting + age
+- [x] `supabase/migrations/0017_retention.sql` — retention sweep function
+- [x] `supabase/migrations/0018_observer_default.sql` — Observer is the default
+- [x] `supabase/migrations/0019_constellation_archive.sql` — Constellation fix
 
 **Verify all four landed** — this should return all `true`:
 
