@@ -106,11 +106,10 @@ select cron.schedule('deep-social-retention', '20 4 * * *',
 
 ## F. One-time confirmations ⚪
 
-- [ ] **CARTO basemap key** (when the email arrives): put it in `.env.local`
-      as `VITE_CARTO_KEY=…` (local + iOS builds) **and** as a GitHub
-      repository *variable* of the same name (Settings → Secrets and
-      variables → Actions → Variables) so the Pages build gets it. Push any
-      commit to redeploy; the map switches from filtered OSM to Dark Matter.
+- [x] **CARTO basemap key** — set in `.env.local` (local + iOS builds) and as
+      the GitHub repository variable `VITE_CARTO_KEY` (Pages build), 2026-09-04.
+      Keyed tile verified watermark-free. If CARTO ever rotates the key, update
+      both places and push.
 - [ ] **Supabase project region** (Dashboard → Project Settings →
       Infrastructure). If it's an EU region, the privacy notice's data-location
       story is clean. If US, decide before public launch (transfer story).

@@ -102,7 +102,8 @@ tester); bilingual (EN/FR) legal layer published; universal reporting, age
 gate, retention, and moderation tooling built and tested. Three
 brain-trust-prioritized builds shipped in the latest cycle (first-run
 interest onboarding; demo-world containment and retraction symmetry;
-friend-invitation affordance in progress). Production activation of the
+friend-invitation affordance). The CARTO Dark Matter basemap is restored
+behind a free keyed raster endpoint (`VITE_CARTO_KEY`). Production activation of the
 compliance layer (four tested-but-unapplied migrations plus operator setup,
 ~90 minutes of dashboard work) is the current gate — tracked in
 [LAUNCH-CHECKLIST.md](LAUNCH-CHECKLIST.md).

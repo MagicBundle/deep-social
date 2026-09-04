@@ -30,7 +30,10 @@ the checklist. **The scarce resource is operator attention, not code.**
 5. Real support email to replace GitHub Issues (DSA point-of-contact +
    Apple support field).
 
-## Next 3 builds
+## Next 3 builds — all shipped (Sept 2026: `7999ad4`, `1c0e867`, `d3f2bb6`)
+
+*Kept as the record of why each was chosen; the code claims below describe
+the state before the builds.*
 
 1. **First-run interest picker** — after OAuth, before the map. New profiles
    seed `interests: []` (App.tsx) and the only way to set them is a buried
